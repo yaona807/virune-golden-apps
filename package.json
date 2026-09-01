@@ -1,0 +1,19 @@
+{
+  "name": "virune-media-jobs-golden",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "check": "virune check",
+    "build": "virune build",
+    "start": "virune run",
+    "golden": "node scripts/verify-p-queue.mjs"
+  },
+  "dependencies": {
+    "p-queue": "9.3.3"
+  },
+  "license": "Apache-2.0"
+}

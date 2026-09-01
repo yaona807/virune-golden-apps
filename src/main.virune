@@ -1,0 +1,93 @@
+import js PQueue from "p-queue"
+
+record MediaJob {
+	id: String
+	input: String
+	status: String
+}
+
+fn statusLine(job: MediaJob) -> String {
+	return "{job.id}:{job.status}"
+}
+
+fn activeHandler() -> Unit uses Console {
+	Console.print("golden:active")
+	return Unit
+}
+
+fn emptyHandler() -> Unit {
+	return Unit
+}
+
+async fn previewWorker() -> String {
+	let job = MediaJob {
+		id: "preview-1",
+		input: "memory://clip-a.mp4",
+		status: "completed",
+	}
+	return statusLine(job)
+}
+
+async fn posterWorker() -> String {
+	let job = MediaJob {
+		id: "poster-1",
+		input: "memory://clip-b.mp4",
+		status: "completed",
+	}
+	return statusLine(job)
+}
+
+async fn waveformWorker() -> String {
+	let job = MediaJob {
+		id: "waveform-1",
+		input: "memory://clip-c.mp4",
+		status: "completed",
+	}
+	return statusLine(job)
+}
+
+async fn failingWorker() -> String {
+	let job = MediaJob {
+		id: "failure-1",
+		input: "memory://broken.mp4",
+		status: "failed",
+	}
+	discard statusLine(job)
+	return panic("intentional media job failure")
+}
+
+@jsExport
+pub fn configuredConcurrency() -> Float uses JavaScript {
+	let queue = PQueue({ concurrency: 1 })
+	return queue.concurrency
+}
+
+@jsExport
+pub async fn runSuccessAndIdentity() -> String uses JavaScript, Console {
+	let queue = PQueue({ concurrency: 1 })
+	discard queue.on("active", activeHandler).on("empty", emptyHandler)
+
+	let firstPending = queue.add(previewWorker)
+	let secondPending = queue.add(posterWorker)
+	let first = await firstPending
+	let second = await secondPending
+
+	discard queue.off("active", activeHandler)
+
+	let third = await queue.add(waveformWorker)
+	return "{first}|{second}|{third}"
+}
+
+@jsExport
+pub async fn runFailure() -> Unit uses JavaScript {
+	let queue = PQueue({ concurrency: 1 })
+	let result = await queue.add(failingWorker)
+	discard result
+	return Unit
+}
+
+pub async fn main() -> Unit uses JavaScript, Console {
+	let result = await runSuccessAndIdentity()
+	Console.print("golden:result:{result}")
+	return Unit
+}
