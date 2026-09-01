@@ -23,7 +23,7 @@ async fn previewWorker() -> String {
 	let job = MediaJob {
 		id: "preview-1",
 		input: "memory://clip-a.mp4",
-		status: "completed"
+		status: "completed",
 	}
 	return statusLine(job)
 }
@@ -32,7 +32,7 @@ async fn posterWorker() -> String {
 	let job = MediaJob {
 		id: "poster-1",
 		input: "memory://clip-b.mp4",
-		status: "completed"
+		status: "completed",
 	}
 	return statusLine(job)
 }
@@ -41,7 +41,7 @@ async fn waveformWorker() -> String {
 	let job = MediaJob {
 		id: "waveform-1",
 		input: "memory://clip-c.mp4",
-		status: "completed"
+		status: "completed",
 	}
 	return statusLine(job)
 }
@@ -50,7 +50,7 @@ async fn failingWorker() -> String {
 	let job = MediaJob {
 		id: "failure-1",
 		input: "memory://broken.mp4",
-		status: "failed"
+		status: "failed",
 	}
 	discard statusLine(job)
 	return panic("intentional media job failure")
