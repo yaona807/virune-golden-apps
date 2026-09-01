@@ -1,0 +1,39 @@
+import js { Hono } from "hono"
+
+@jsExport
+pub async fn runHttpSuccess() -> String uses JavaScript {
+	let app = Hono()
+	discard app
+		.get("/jobs/:id", async fn(c) {
+			discard c.req.query("view")
+			return c.text(c.req.param("id"))
+		})
+		.get("/health", async fn(c) {
+			return c.text("ok")
+		})
+
+	let response = await app.request("/jobs/job-42?view=compact")
+	let body = await response.text()
+	return "{response.status}:{body}"
+}
+
+@jsExport
+pub async fn runHttpFailure() -> String uses JavaScript {
+	let app = Hono()
+	discard app.get("/fail", async fn(c) {
+		discard c.req.path
+		return panic("intentional Hono route failure")
+	})
+
+	let response = await app.request("/fail")
+	let body = await response.text()
+	return "{response.status}:{body}"
+}
+
+pub async fn main() -> Unit uses JavaScript, Console {
+	let success = await runHttpSuccess()
+	let failure = await runHttpFailure()
+	Console.print("golden:hono:{success}")
+	Console.print("golden:hono-failure:{failure}")
+	return Unit
+}
