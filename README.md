@@ -40,4 +40,4 @@ CI is added when there is a real consumer validation path to execute. The bootst
 
 ## Current status
 
-Repository bootstrap is in progress under #2. Application implementations have not started yet.
+The Phase 2 consumer-validation contract and repository workflow are established. Golden Application implementations have not started yet; focused implementation Issues are created only when a concrete scenario and its failure modes are known.
