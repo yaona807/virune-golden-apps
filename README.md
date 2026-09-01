@@ -22,7 +22,7 @@ If a real consumer scenario exposes a correctness, safety, compatibility, determ
 
 ## Candidate contract
 
-Phase 2A consumes an exact reviewed set of npm-compatible Virune package artifacts. The concrete transport for those artifacts is deliberately not fixed during repository bootstrap: it will be chosen with the first runnable Golden slice, when the candidate producer and clean-consumer command are concrete. The transport must not create a second publication authority or require reading Virune repository internals.
+Phase 2A consumes an exact reviewed set of npm-compatible Virune package artifacts. The first runnable slice uses a two-job GitHub Actions path: a producer checks out one exact reviewed `yaona807/virune` commit, runs the repository-owned `pack:virune` path and candidate-content verification, and transfers only `release/` artifacts to a fresh consumer job. The consumer validates the existing release checksums/manifests and installs the exact six Registry-candidate tarballs without checking out Virune source.
 
 Phase 2B changes only the package source: the same Golden scenarios are installed from exact public `v1.1.0-rc.*` versions on npm. A developer-global Virune installation, mutable local workspace, or npm cache state is never completion evidence.
 
@@ -32,12 +32,18 @@ Phase 2A validates exact reviewed Virune package artifacts before public release
 
 The concrete frontend, HTTP, typed-DB, identity-sensitive callback, queue/worker, and shared Virune-native domain scenarios are selected in focused implementation work only when their boundaries are concrete. This repository does not pre-create framework support layers or speculative Managed/bundler/worker abstractions.
 
+## p-queue Golden slice
+
+Issue [#17](https://github.com/yaona807/virune-golden-apps/issues/17) is the first Phase 2A Golden Application slice. `Virune Media Jobs` uses `p-queue` as a real in-memory queue/worker dependency and exercises construction, contextual options, retained/repeated native callbacks, Promise completion/rejection, External property/method reads, chaining, and same-handler `on`/`off` identity without a handwritten Interop adapter.
+
+The canonical CI path is Ubuntu 24.04 / Node 24. It pins both the Virune candidate commit and `p-queue` version, commits the npm lockfile, runs `virune check` and `virune build`, then executes the runnable success/identity scenario and the deterministic rejection assertion.
+
 ## Repository workflow
 
 After the initial empty-repository commit, changes are made through focused Issues and Pull Requests. See [`CONTRIBUTING.md`](CONTRIBUTING.md). Runnable Golden slices must pin dependencies, commit their lockfile, record the exact Virune candidate identity/source kind, and make clean install/check/build/run-or-test commands reproducible.
 
-CI is added when there is a real consumer validation path to execute. The bootstrap does not add a no-op green workflow because that would create false evidence without testing a Golden Application.
+CI is added only with a real consumer validation path; a green workflow is evidence only when the corresponding Golden Application actually installs, checks, builds, and runs against the selected consumer package source.
 
 ## Current status
 
-The Phase 2 consumer-validation contract and repository workflow are established. Golden Application implementations have not started yet; focused implementation Issues are created only when a concrete scenario and its failure modes are known.
+The Phase 2 consumer-validation contract and repository workflow are established. Phase 2A implementation starts with the `p-queue` Virune Media Jobs slice in #17; later framework/library slices remain deliberately unimplemented until their focused work items are active.
