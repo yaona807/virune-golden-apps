@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 env:
-  VIRUNE_CANDIDATE_SHA: e4469df1dcda42ca1ea2442c71fa745104b009ea
+  VIRUNE_CANDIDATE_SHA: 06c3b6111b6ed734437f865f77979bb70689b94c
 
 jobs:
   candidate-producer:
