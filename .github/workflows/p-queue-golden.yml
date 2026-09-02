@@ -212,3 +212,56 @@ jobs:
       - name: Run Drizzle SQLite Golden scenario
         working-directory: drizzle
         run: npm run golden
+
+  preact-consumer:
+    name: Preact jsdom / Ubuntu 24.04 / Node 24 consumer
+    needs: candidate-producer
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact Golden head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify producer identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ needs.candidate-producer.outputs.virune_sha }}" = "$VIRUNE_CANDIDATE_SHA"
+          test "$(git rev-parse HEAD)" = "${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
+      - name: Download exact Virune release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: virune-candidate
+          path: .candidate/virune-release
+      - name: Verify downloaded release checksums
+        working-directory: .candidate/virune-release
+        run: sha256sum --check SHA256SUMS
+      - name: Verify six-package candidate identity
+        run: node scripts/verify-candidate.mjs .candidate/virune-release
+      - name: Install pinned Preact jsdom dependencies
+        working-directory: preact
+        run: npm ci
+      - name: Install exact Virune six-package consumer surface
+        working-directory: preact
+        run: node ../scripts/install-candidate.mjs ../.candidate/virune-release
+      - name: Assert consumer-only workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e virune-source
+          test ! -e ../virune-source
+          ! git grep -nE '(packages/.*/src|\.\./virune|workspace:)' -- preact scripts
+      - name: Virune check
+        working-directory: preact
+        run: npm run check
+      - name: Virune build
+        working-directory: preact
+        run: npm run build
+      - name: Run Preact jsdom Golden scenario
+        working-directory: preact
+        run: npm run golden
