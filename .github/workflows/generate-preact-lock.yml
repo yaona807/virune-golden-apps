@@ -1,0 +1,31 @@
+name: Generate Preact lock
+
+on:
+  pull_request:
+    paths:
+      - preact/package.json
+      - .github/workflows/generate-preact-lock.yml
+
+permissions:
+  contents: read
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Resolve exact lockfile
+        working-directory: preact
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Emit lockfile
+        working-directory: preact
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'LOCKFILE_BASE64_BEGIN'
+          base64 -w0 package-lock.json
+          echo
+          echo 'LOCKFILE_BASE64_END'
