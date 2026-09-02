@@ -23,7 +23,7 @@ assert.equal(
 
 const stdoutLines = run.stdout.split(/\r?\n/u).filter(Boolean);
 assert.ok(
-	stdoutLines.includes('golden:hono:200:job-42:200:/health:200:query-42'),
+	stdoutLines.includes('golden:hono:200:job-42:200:/health:200:{"detail":"query-42"}'),
 	`unexpected Hono success/path/query result: ${JSON.stringify(stdoutLines)}`,
 );
 assert.ok(

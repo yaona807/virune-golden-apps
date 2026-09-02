@@ -5,7 +5,7 @@ pub async fn runHttpSuccess() -> String uses JavaScript {
 	let app = Hono()
 	let routes = app.get("/jobs/:id", async fn(c) uses JavaScript => c.text(c.req.param("id")))
 	discard routes.get("/health", async fn(c) uses JavaScript => c.text(c.req.path))
-	discard routes.get("/search", async fn(c) uses JavaScript => c.text(c.req.query()["detail"]))
+	discard routes.get("/search", async fn(c) uses JavaScript => c.json(c.req.query()))
 
 	let response = await app.request("/jobs/job-42")
 	let body = await response.text()
