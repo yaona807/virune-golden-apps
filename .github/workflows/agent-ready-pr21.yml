@@ -1,0 +1,19 @@
+name: Temporary PR ready transition
+
+on:
+  push:
+    branches:
+      - implementation/20-hono-http-golden
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  ready:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Mark PR 21 ready
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr ready 21 --repo yaona807/virune-golden-apps
