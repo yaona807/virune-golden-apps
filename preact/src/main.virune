@@ -11,10 +11,7 @@ pub fn runFrontend() -> String uses JavaScript {
 	let initial = h("button", {
 		id: "job-action",
 		style: { display: "block" },
-		onClick: fn(event) uses JavaScript {
-			discard event.currentTarget.setAttribute("data-clicked", "yes")
-			return Unit
-		},
+		onClick: fn(event) uses JavaScript => event.currentTarget.setAttribute("data-clicked", "yes"),
 	}, "queued")
 	discard render(initial, root)
 	let initialHtml = root.innerHTML
