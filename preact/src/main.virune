@@ -1,9 +1,9 @@
-import js { JSDOM } from "jsdom"
+import js * as jsdom from "jsdom"
 import js { createElement, h, render } from "preact"
 
 @jsExport
 pub fn runFrontend() -> String uses JavaScript {
-	let dom = JSDOM("<!doctype html><html><body></body></html>")
+	let dom = jsdom.JSDOM("<!doctype html><html><body></body></html>")
 	let document = dom.window.document
 	let root = document.createElement("div")
 	discard document.body.appendChild(root)
