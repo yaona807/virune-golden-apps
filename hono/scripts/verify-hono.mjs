@@ -23,8 +23,8 @@ assert.equal(
 
 const stdoutLines = run.stdout.split(/\r?\n/u).filter(Boolean);
 assert.ok(
-	stdoutLines.includes('golden:hono:200:job-42'),
-	`unexpected Hono success result: ${JSON.stringify(stdoutLines)}`,
+	stdoutLines.includes('golden:hono:200:job-42:200:query-42'),
+	`unexpected Hono success/query result: ${JSON.stringify(stdoutLines)}`,
 );
 assert.ok(
 	stdoutLines.includes('golden:hono-failure:500:Internal Server Error'),
@@ -36,7 +36,7 @@ assert.doesNotMatch(run.stderr, /\$tag|\$values/u);
 
 const generated = await readFile(resolve('dist/main.js'), 'utf8');
 const projectionCount = generated.match(/\$viruneProjectCallable\(/gu)?.length ?? 0;
-assert.ok(projectionCount >= 3, `expected generated callable shims for Hono handlers, got ${projectionCount}`);
+assert.ok(projectionCount >= 4, `expected generated callable shims for Hono handlers, got ${projectionCount}`);
 assert.doesNotMatch(generated, /\.get\([^,]+,\s*async\s*\(/u);
 
-process.stdout.write('Verified Hono in-process HTTP success, contextual callbacks, and 500 failure boundary.\n');
+process.stdout.write('Verified Hono in-process HTTP success, path/query reads, contextual callbacks, and 500 failure boundary.\n');

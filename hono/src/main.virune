@@ -5,10 +5,13 @@ pub async fn runHttpSuccess() -> String uses JavaScript {
 	let app = Hono()
 	let routes = app.get("/jobs/:id", async fn(c) => c.text(c.req.param("id")))
 	discard routes.get("/health", async fn(c) => c.text(c.req.path))
+	discard routes.get("/search", async fn(c) => c.text(c.req.query()["detail"]))
 
 	let response = await app.request("/jobs/job-42")
 	let body = await response.text()
-	return "{response.status}:{body}"
+	let queryResponse = await app.request("/search?detail=query-42")
+	let queryBody = await queryResponse.text()
+	return "{response.status}:{body}:{queryResponse.status}:{queryBody}"
 }
 
 @jsExport
