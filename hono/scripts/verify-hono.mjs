@@ -23,8 +23,8 @@ assert.equal(
 
 const stdoutLines = run.stdout.split(/\r?\n/u).filter(Boolean);
 assert.ok(
-	stdoutLines.includes('golden:hono:200:job-42:200:query-42'),
-	`unexpected Hono success/query result: ${JSON.stringify(stdoutLines)}`,
+	stdoutLines.includes('golden:hono:200:job-42:200:/health:200:query-42'),
+	`unexpected Hono success/path/query result: ${JSON.stringify(stdoutLines)}`,
 );
 assert.ok(
 	stdoutLines.includes('golden:hono-failure:500:Internal Server Error'),

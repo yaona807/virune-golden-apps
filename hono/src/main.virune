@@ -9,9 +9,11 @@ pub async fn runHttpSuccess() -> String uses JavaScript {
 
 	let response = await app.request("/jobs/job-42")
 	let body = await response.text()
+	let healthResponse = await app.request("/health")
+	let healthBody = await healthResponse.text()
 	let queryResponse = await app.request("/search?detail=query-42")
 	let queryBody = await queryResponse.text()
-	return "{response.status}:{body}:{queryResponse.status}:{queryBody}"
+	return "{response.status}:{body}:{healthResponse.status}:{healthBody}:{queryResponse.status}:{queryBody}"
 }
 
 @jsExport
