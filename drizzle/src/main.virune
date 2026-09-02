@@ -1,0 +1,63 @@
+import js Database from "better-sqlite3"
+import js { eq } from "drizzle-orm"
+import js { drizzle } from "drizzle-orm/better-sqlite3"
+import js { integer, sqliteTable, text } from "drizzle-orm/sqlite-core"
+
+@jsExport
+pub fn runDbSuccess() -> String uses JavaScript {
+	let sqlite = Database(":memory:")
+	discard sqlite.exec("CREATE TABLE jobs (id INTEGER PRIMARY KEY, status TEXT NOT NULL, detail TEXT NOT NULL)")
+
+	let jobs = sqliteTable("jobs", {
+		id: integer("id").primaryKey(),
+		status: text("status").notNull(),
+		detail: text("detail").notNull(),
+	})
+	let db = drizzle({ client: sqlite })
+
+	discard db.insert(jobs).values({
+		id: 1,
+		status: "queued",
+		detail: "preview",
+	}).run()
+
+	discard db.transaction(fn(tx) uses JavaScript => tx.insert(jobs).values({
+		id: 2,
+		status: "completed",
+		detail: "poster",
+	}).run())
+
+	let completed = db.select({
+		id: jobs.id,
+		status: jobs.status,
+		detail: jobs.detail,
+	}).from(jobs).where(eq(jobs.status, "completed")).all()
+	discard completed[0]
+	let count = completed.length
+
+	discard sqlite.close()
+	return "completed:{count}"
+}
+
+@jsExport
+pub fn runDbConstraintFailure() -> Unit uses JavaScript {
+	let sqlite = Database(":memory:")
+	discard sqlite.exec("CREATE TABLE jobs (id INTEGER PRIMARY KEY, status TEXT NOT NULL, detail TEXT NOT NULL)")
+	let jobs = sqliteTable("jobs", {
+		id: integer("id").primaryKey(),
+		status: text("status").notNull(),
+		detail: text("detail").notNull(),
+	})
+	let db = drizzle({ client: sqlite })
+
+	discard db.insert(jobs).values({ id: 1, status: "queued", detail: "first" }).run()
+	discard db.insert(jobs).values({ id: 1, status: "duplicate", detail: "second" }).run()
+	discard sqlite.close()
+	return Unit
+}
+
+pub fn main() -> Unit uses JavaScript, Console {
+	let result = runDbSuccess()
+	Console.print("golden:drizzle:{result}")
+	return Unit
+}
