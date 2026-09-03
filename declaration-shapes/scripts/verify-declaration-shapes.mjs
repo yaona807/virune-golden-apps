@@ -10,7 +10,7 @@ assert.equal(nanoidManifest.version, '6.0.1');
 assert.equal(nanoidManifest.type, 'module');
 assert.equal(nanoidManifest.types, './index.d.ts');
 assert.equal(nanoidManifest.engines?.node, '^22 || ^24 || >=26');
-assert.equal(nanoidManifest.dependencies, undefined);
+assert.equal(Object.keys(nanoidManifest.dependencies ?? {}).length, 0);
 
 const nanoidDeclarations = await readFile(resolve('node_modules/nanoid/index.d.ts'), 'utf8');
 assert.match(nanoidDeclarations, /export function customAlphabet<Type extends string>\(/u);
@@ -22,13 +22,13 @@ const msManifest = JSON.parse(
 assert.equal(msManifest.version, '2.1.3');
 assert.equal(msManifest.main, './index');
 assert.equal(msManifest.types, undefined);
-assert.equal(msManifest.dependencies, undefined);
+assert.equal(Object.keys(msManifest.dependencies ?? {}).length, 0);
 
 const msTypesManifest = JSON.parse(
 	await readFile(resolve('node_modules/@types/ms/package.json'), 'utf8'),
 );
 assert.equal(msTypesManifest.version, '2.1.0');
-assert.equal(msTypesManifest.dependencies, undefined);
+assert.equal(Object.keys(msTypesManifest.dependencies ?? {}).length, 0);
 
 const msDeclarations = await readFile(resolve('node_modules/@types/ms/index.d.ts'), 'utf8');
 assert.match(msDeclarations, /declare function ms\(value: number, options\?: \{ long: boolean \}\): string;/u);
