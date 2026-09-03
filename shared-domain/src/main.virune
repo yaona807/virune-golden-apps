@@ -2,6 +2,14 @@ import js { Hono } from "hono"
 import js PQueue from "p-queue"
 import { auditedSummary, describeDomainError, describeJob, resolveJob } from "./domain.virune"
 
+async fn httpBody(value: String) -> String {
+	let outcome = await resolveJob(value)
+	return match outcome {
+		Ok(job) => describeJob(job)
+		Err(error) => describeDomainError(error)
+	}
+}
+
 async fn queueWorker() -> String uses Console {
 	let outcome = await resolveJob("job-42")
 	return match outcome {
@@ -21,14 +29,7 @@ async fn failingQueueWorker() -> String {
 @jsExport
 pub async fn runHttpRoundTrip() -> String uses JavaScript {
 	let app = Hono()
-	discard app.get("/jobs/:id", async fn(c) uses JavaScript {
-		let outcome = await resolveJob(c.req.param("id"))
-		let body = match outcome {
-			Ok(job) => describeJob(job)
-			Err(error) => describeDomainError(error)
-		}
-		return c.text(body)
-	})
+	discard app.get("/jobs/:id", async fn(c) uses JavaScript => c.text(await httpBody(c.req.param("id"))))
 
 	let found = await app.request("/jobs/job-42")
 	let foundBody = await found.text()
