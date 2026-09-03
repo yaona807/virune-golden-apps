@@ -1,0 +1,62 @@
+pub newtype JobId = String
+
+pub enum JobStatus {
+	Completed
+}
+
+pub enum DomainError {
+	Missing(String)
+}
+
+pub record MediaJob {
+	id: JobId
+	status: JobStatus
+	detail: String
+}
+
+pub fn parseJobId(value: String) -> Result<JobId, DomainError> {
+	if value == "job-42" {
+		return Ok(JobId.create(value))
+	}
+	return Err(DomainError.Missing(value))
+}
+
+async fn loadStatus(id: JobId) -> Result<JobStatus, DomainError> {
+	return Ok(JobStatus.Completed)
+}
+
+async fn loadDetail(id: JobId) -> Result<String, DomainError> {
+	return Ok("preview")
+}
+
+pub async fn resolveJob(value: String) -> Result<MediaJob, DomainError> {
+	let id = parseJobId(value)?
+	let values = await (parallel try {
+		status: loadStatus(id),
+		detail: loadDetail(id),
+	})?
+	return Ok(MediaJob {
+		id: id,
+		status: values.status,
+		detail: values.detail,
+	})
+}
+
+pub fn describeJob(job: MediaJob) -> String {
+	let status = match job.status {
+		Completed => "completed"
+	}
+	return "{status}:{job.detail}"
+}
+
+pub fn describeDomainError(error: DomainError) -> String {
+	return match error {
+		Missing(value) => "missing:{value}"
+	}
+}
+
+pub fn auditedSummary(job: MediaJob) -> String uses Console {
+	let summary = describeJob(job)
+	Console.print("golden:shared-audit:{summary}")
+	return summary
+}
