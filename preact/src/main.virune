@@ -32,6 +32,7 @@ pub fn runFrontend() -> String uses JavaScript {
 }
 
 pub fn main() -> Unit uses JavaScript, Console {
-	Console.print("golden:preact:{runFrontend()}")
+	let result = runFrontend()
+	Console.print("golden:preact:{result}")
 	return Unit
 }
