@@ -1,0 +1,20 @@
+{
+  "name": "virune-media-jobs-shared-domain-golden",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "check": "virune check",
+    "build": "virune build",
+    "start": "virune run",
+    "golden": "node scripts/verify-shared-domain.mjs"
+  },
+  "dependencies": {
+    "hono": "4.13.5",
+    "p-queue": "9.3.3"
+  },
+  "license": "Apache-2.0"
+}

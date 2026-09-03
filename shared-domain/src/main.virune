@@ -1,0 +1,61 @@
+import js { Hono } from "hono"
+import js PQueue from "p-queue"
+import { auditedSummary, describeDomainError, describeJob, resolveJob } from "./domain.virune"
+
+async fn httpBody(value: String) -> String {
+	let outcome = await resolveJob(value)
+	return match outcome {
+		Ok(job) => describeJob(job)
+		Err(error) => describeDomainError(error)
+	}
+}
+
+async fn queueWorker() -> String uses Console {
+	let outcome = await resolveJob("job-42")
+	return match outcome {
+		Ok(job) => auditedSummary(job)
+		Err(error) => panic("shared domain queue success path failed")
+	}
+}
+
+async fn failingQueueWorker() -> String {
+	let outcome = await resolveJob("missing")
+	return match outcome {
+		Ok(job) => describeJob(job)
+		Err(error) => panic("shared domain queue rejected")
+	}
+}
+
+@jsExport
+pub async fn runHttpRoundTrip() -> String uses JavaScript {
+	let app = Hono()
+	discard app.get("/jobs/:id", async fn(c) uses JavaScript => c.text(await httpBody(c.req.param("id"))))
+
+	let found = await app.request("/jobs/job-42")
+	let foundBody = await found.text()
+	let missing = await app.request("/jobs/missing")
+	let missingBody = await missing.text()
+	return "{found.status}:{foundBody}|{missing.status}:{missingBody}"
+}
+
+@jsExport
+pub async fn runQueueSuccess() -> String uses JavaScript, Console {
+	let queue = PQueue({ concurrency: 1 })
+	return await queue.add(queueWorker)
+}
+
+@jsExport
+pub async fn runQueueFailure() -> Unit uses JavaScript {
+	let queue = PQueue({ concurrency: 1 })
+	let result = await queue.add(failingQueueWorker)
+	discard result
+	return Unit
+}
+
+pub async fn main() -> Unit uses JavaScript, Console {
+	let http = await runHttpRoundTrip()
+	let queued = await runQueueSuccess()
+	Console.print("golden:shared-http:{http}")
+	Console.print("golden:shared-queue:{queued}")
+	return Unit
+}
