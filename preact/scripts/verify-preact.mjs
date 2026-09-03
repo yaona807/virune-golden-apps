@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import './jsdom-host.mjs';
 
 const preactManifest = JSON.parse(
 	await readFile(resolve('node_modules/preact/package.json'), 'utf8'),
@@ -18,9 +19,12 @@ assert.equal(jsdomManifest.version, '30.0.1');
 assert.equal(jsdomTypesManifest.version, '30.0.0');
 
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const hostImport = pathToFileURL(resolve('scripts/jsdom-host.mjs')).href;
+const nodeOptions = [process.env.NODE_OPTIONS, `--import=${hostImport}`].filter(Boolean).join(' ');
 const run = spawnSync(npm, ['run', '--silent', 'start'], {
 	cwd: process.cwd(),
 	encoding: 'utf8',
+	env: { ...process.env, NODE_OPTIONS: nodeOptions },
 });
 assert.equal(
 	run.status,
