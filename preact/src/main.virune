@@ -18,7 +18,7 @@ pub fn runFrontend() -> String uses JavaScript {
 
 	let clickEvent = document.createEvent("Event")
 	discard clickEvent.initEvent("click", true, true)
-	discard root.children[0].dispatchEvent(clickEvent)
+	discard root.querySelectorAll("#job-action").item(0).dispatchEvent(clickEvent)
 	let clickedHtml = root.innerHTML
 
 	let updated = createElement("button", {
