@@ -50,7 +50,8 @@ assert.match(updatedHtml, /style="display: none;"/u);
 const generated = await readFile(resolve('dist/main.js'), 'utf8');
 const projectionCount = generated.match(/\$viruneProjectCallable\(/gu)?.length ?? 0;
 assert.ok(projectionCount >= 1, `expected generated callable shim for Preact event handler, got ${projectionCount}`);
-assert.match(generated, /rootTaskContext\(\)/u);
+assert.match(generated, /\$fn\(\$raw0, rootTaskContext\(\)\)/u);
+assert.match(generated, /\([^)]*, \$lambdaCtx\d+ = rootTaskContext\(\)\) => \{/u);
 
 const golden = await import(`${pathToFileURL(resolve('dist/main.js')).href}?golden-preact`);
 const replay = golden.runFrontend();
