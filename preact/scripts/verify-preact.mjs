@@ -29,7 +29,9 @@ assert.equal(
 );
 const line = run.stdout.split(/\r?\n/u).find(item => item.startsWith('golden:preact:'));
 assert.ok(line, `missing Preact Golden output: ${JSON.stringify(run.stdout)}`);
-const [initialHtml, clickedHtml, updatedHtml] = line.slice('golden:preact:'.length).split('|');
+const parts = line.slice('golden:preact:'.length).split('|');
+assert.equal(parts.length, 3, `malformed Preact Golden output: ${JSON.stringify(line)}`);
+const [initialHtml, clickedHtml, updatedHtml] = parts;
 assert.ok(initialHtml);
 assert.ok(clickedHtml);
 assert.ok(updatedHtml);
