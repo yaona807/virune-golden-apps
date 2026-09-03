@@ -1,0 +1,63 @@
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import './jsdom-host.mjs';
+
+const preactManifest = JSON.parse(
+	await readFile(resolve('node_modules/preact/package.json'), 'utf8'),
+);
+const jsdomManifest = JSON.parse(
+	await readFile(resolve('node_modules/jsdom/package.json'), 'utf8'),
+);
+const jsdomTypesManifest = JSON.parse(
+	await readFile(resolve('node_modules/@types/jsdom/package.json'), 'utf8'),
+);
+assert.equal(preactManifest.version, '10.29.8');
+assert.equal(jsdomManifest.version, '30.0.1');
+assert.equal(jsdomTypesManifest.version, '30.0.0');
+
+const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const hostImport = pathToFileURL(resolve('scripts/jsdom-host.mjs')).href;
+const nodeOptions = [process.env.NODE_OPTIONS, `--import=${hostImport}`].filter(Boolean).join(' ');
+const run = spawnSync(npm, ['run', '--silent', 'start'], {
+	cwd: process.cwd(),
+	encoding: 'utf8',
+	env: { ...process.env, NODE_OPTIONS: nodeOptions },
+});
+assert.equal(
+	run.status,
+	0,
+	`Virune Media Jobs Preact scenario failed\nstdout:\n${run.stdout}\nstderr:\n${run.stderr}`,
+);
+const line = run.stdout.split(/\r?\n/u).find(item => item.startsWith('golden:preact:'));
+assert.ok(line, `missing Preact Golden output: ${JSON.stringify(run.stdout)}`);
+const parts = line.slice('golden:preact:'.length).split('|');
+assert.equal(parts.length, 3, `malformed Preact Golden output: ${JSON.stringify(line)}`);
+const [initialHtml, clickedHtml, updatedHtml] = parts;
+assert.ok(initialHtml);
+assert.ok(clickedHtml);
+assert.ok(updatedHtml);
+assert.match(initialHtml, /<button[^>]*id="job-action"[^>]*>queued<\/button>/u);
+assert.match(initialHtml, /style="display: block;"/u);
+assert.doesNotMatch(initialHtml, /data-clicked=/u);
+assert.match(clickedHtml, /data-clicked="yes"/u);
+assert.match(clickedHtml, />queued<\/button>/u);
+assert.match(updatedHtml, /<button[^>]*id="job-updated"[^>]*>completed<\/button>/u);
+assert.match(updatedHtml, /style="display: none;"/u);
+
+const generated = await readFile(resolve('dist/main.js'), 'utf8');
+const projectionCount = generated.match(/\$viruneProjectCallable\(/gu)?.length ?? 0;
+assert.ok(projectionCount >= 1, `expected generated callable shim for Preact event handler, got ${projectionCount}`);
+assert.match(generated, /\$fn\(\$raw0, rootTaskContext\(\)\)/u);
+assert.match(generated, /\([^)]*, \$lambdaCtx\d+ = rootTaskContext\(\)\) => \{/u);
+
+const golden = await import(`${pathToFileURL(resolve('dist/main.js')).href}?golden-preact`);
+const replay = golden.runFrontend();
+const [replayInitial, replayClicked, replayUpdated] = replay.split('|');
+assert.match(replayInitial, />queued<\/button>/u);
+assert.match(replayClicked, /data-clicked="yes"/u);
+assert.match(replayUpdated, />completed<\/button>/u);
+
+process.stdout.write('Verified Preact h/createElement VNodes, nested props, retained DOM event callback, jsdom dispatch, and render update.\n');

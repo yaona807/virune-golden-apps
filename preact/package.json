@@ -1,0 +1,23 @@
+{
+  "name": "virune-media-jobs-preact-golden",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "check": "virune check",
+    "build": "virune build",
+    "start": "virune run",
+    "golden": "node scripts/verify-preact.mjs"
+  },
+  "dependencies": {
+    "jsdom": "30.0.1",
+    "preact": "10.29.8"
+  },
+  "devDependencies": {
+    "@types/jsdom": "30.0.0"
+  },
+  "license": "Apache-2.0"
+}

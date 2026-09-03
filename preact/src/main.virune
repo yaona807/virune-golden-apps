@@ -1,0 +1,38 @@
+import js * as jsdom from "jsdom"
+import js { createElement, h, render } from "preact"
+
+@jsExport
+pub fn runFrontend() -> String uses JavaScript {
+	let dom = jsdom.JSDOM("<!doctype html><html><body></body></html>")
+	let document = dom.window.document
+	let root = document.createElement("div")
+	discard document.body.appendChild(root)
+
+	let initial = h("button", {
+		id: "job-action",
+		style: { display: "block" },
+		onClick: fn(event) uses JavaScript => event.currentTarget.setAttribute("data-clicked", "yes"),
+	}, "queued")
+	discard render(initial, root)
+	let initialHtml = root.innerHTML
+
+	let clickEvent = document.createEvent("Event")
+	discard clickEvent.initEvent("click", true, true)
+	discard root.querySelectorAll("#job-action").item(0).dispatchEvent(clickEvent)
+	let clickedHtml = root.innerHTML
+
+	let updated = createElement("button", {
+		id: "job-updated",
+		style: { display: "none" },
+	}, "completed")
+	discard render(updated, root)
+	let updatedHtml = root.innerHTML
+
+	return "{initialHtml}|{clickedHtml}|{updatedHtml}"
+}
+
+pub fn main() -> Unit uses JavaScript, Console {
+	let result = runFrontend()
+	Console.print("golden:preact:{result}")
+	return Unit
+}
