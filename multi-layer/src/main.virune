@@ -1,0 +1,92 @@
+import js Database from "better-sqlite3"
+import js { eq } from "drizzle-orm"
+import js { drizzle } from "drizzle-orm/better-sqlite3"
+import js { sqliteTable, text } from "drizzle-orm/sqlite-core"
+import js { Hono } from "hono"
+import js * as jsdom from "jsdom"
+import js PQueue from "p-queue"
+import js { h, render } from "preact"
+import { describeDomainError, describeJob, fromStorage, missingSummary } from "./domain.virune"
+
+@jsExport
+pub async fn runMultiLayer() -> String uses JavaScript {
+	let sqlite = Database(":memory:")
+	discard sqlite.exec("CREATE TABLE jobs (id TEXT PRIMARY KEY, status TEXT NOT NULL, detail TEXT NOT NULL)")
+
+	let jobs = sqliteTable("jobs", {
+		id: text("id").primaryKey(),
+		status: text("status").notNull(),
+		detail: text("detail").notNull(),
+	})
+	let db = drizzle({ client: sqlite })
+
+	discard db.insert(jobs).values({
+		id: "job-42",
+		status: "queued",
+		detail: "preview",
+	}).run()
+
+	let queuedRows = db.select({
+		id: jobs.id,
+		status: jobs.status,
+		detail: jobs.detail,
+	}).from(jobs).where(eq(jobs.id, "job-42")).all()
+	let queuedCount = queuedRows.length
+	let queuedRow = queuedRows.reduce(fn(left, right) => left)
+	let queuedOutcome = fromStorage(queuedRow.id, queuedRow.status, queuedRow.detail)
+	let queuedSummary = match queuedOutcome {
+		Ok(job) => describeJob(job)
+		Err(error) => describeDomainError(error)
+	}
+
+	let queue = PQueue({ concurrency: 1 })
+	let updateResult = await queue.add(fn() -> Unit uses JavaScript {
+		discard db.update(jobs).set({
+			status: "completed",
+		}).where(eq(jobs.id, "job-42")).run()
+		return Unit
+	})
+	discard updateResult
+
+	let completedRows = db.select({
+		id: jobs.id,
+		status: jobs.status,
+		detail: jobs.detail,
+	}).from(jobs).where(eq(jobs.id, "job-42")).all()
+	let completedCount = completedRows.length
+	let completedRow = completedRows.reduce(fn(left, right) => left)
+	let completedOutcome = fromStorage(completedRow.id, completedRow.status, completedRow.detail)
+	let completedSummary = match completedOutcome {
+		Ok(job) => describeJob(job)
+		Err(error) => describeDomainError(error)
+	}
+
+	let missingRows = db.select({
+		id: jobs.id,
+	}).from(jobs).where(eq(jobs.id, "missing")).all()
+	let missingCount = missingRows.length
+
+	let app = Hono()
+	let routes = app.get("/jobs/job-42", async fn(c) uses JavaScript => c.text(completedSummary))
+	discard routes.get("/jobs/:id", async fn(c) uses JavaScript => c.text(missingSummary(c.req.param("id")), 404))
+
+	let foundResponse = await app.request("/jobs/job-42")
+	let foundBody = await foundResponse.text()
+	let missingResponse = await app.request("/jobs/missing")
+	let missingBody = await missingResponse.text()
+
+	let dom = jsdom.JSDOM("<!doctype html><html><body></body></html>")
+	let root = dom.window.document.createElement("div")
+	discard dom.window.document.body.appendChild(root)
+	discard render(h("div", { id: "job-state" }, foundBody), root)
+	let html = root.innerHTML
+
+	discard sqlite.close()
+	return "{queuedCount}|{completedCount}|{missingCount}|{queuedSummary}|{foundResponse.status}:{foundBody}|{missingResponse.status}:{missingBody}|{html}"
+}
+
+pub async fn main() -> Unit uses JavaScript, Console {
+	let result = await runMultiLayer()
+	Console.print("golden:multi-layer:{result}")
+	return Unit
+}

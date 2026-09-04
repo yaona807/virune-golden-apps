@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 env:
-  VIRUNE_CANDIDATE_SHA: dd75da21c0ee91efad7976625cd84fb610def91a
+  VIRUNE_CANDIDATE_SHA: b5df252df1514c5a4931f7df57d20bbf2f178558
 
 jobs:
   candidate-producer:
@@ -370,4 +370,57 @@ jobs:
         run: npm run build
       - name: Run declaration-shape Golden scenario
         working-directory: declaration-shapes
+        run: npm run golden
+
+  multi-layer-consumer:
+    name: Multi-layer reference / Ubuntu 24.04 / Node 24 consumer
+    needs: candidate-producer
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact Golden head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify producer identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ needs.candidate-producer.outputs.virune_sha }}" = "$VIRUNE_CANDIDATE_SHA"
+          test "$(git rev-parse HEAD)" = "${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
+      - name: Download exact Virune release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: virune-candidate
+          path: .candidate/virune-release
+      - name: Verify downloaded release checksums
+        working-directory: .candidate/virune-release
+        run: sha256sum --check SHA256SUMS
+      - name: Verify six-package candidate identity
+        run: node scripts/verify-candidate.mjs .candidate/virune-release
+      - name: Install pinned multi-layer dependencies
+        working-directory: multi-layer
+        run: npm ci
+      - name: Install exact Virune six-package consumer surface
+        working-directory: multi-layer
+        run: node ../scripts/install-candidate.mjs ../.candidate/virune-release
+      - name: Assert consumer-only workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e virune-source
+          test ! -e ../virune-source
+          ! git grep -nE '(packages/.*/src|\.\./virune|workspace:)' -- multi-layer scripts
+      - name: Virune check
+        working-directory: multi-layer
+        run: npm run check
+      - name: Virune build
+        working-directory: multi-layer
+        run: npm run build
+      - name: Run multi-layer Golden scenario
+        working-directory: multi-layer
         run: npm run golden

@@ -1,0 +1,57 @@
+pub newtype JobId = String
+
+pub enum JobStatus {
+	Queued
+	Completed
+}
+
+pub enum DomainError {
+	Missing(String)
+	InvalidStatus(String)
+}
+
+pub record MediaJob {
+	id: JobId
+	status: JobStatus
+	detail: String
+}
+
+pub fn fromStorage(id: String, status: String, detail: String) -> Result<MediaJob, DomainError> {
+	if id != "job-42" {
+		return Err(DomainError.Missing(id))
+	}
+	if status == "queued" {
+		return Ok(MediaJob {
+			id: JobId.create(id),
+			status: JobStatus.Queued,
+			detail: detail,
+		})
+	}
+	if status == "completed" {
+		return Ok(MediaJob {
+			id: JobId.create(id),
+			status: JobStatus.Completed,
+			detail: detail,
+		})
+	}
+	return Err(DomainError.InvalidStatus(status))
+}
+
+pub fn describeJob(job: MediaJob) -> String {
+	let status = match job.status {
+		Queued => "queued"
+		Completed => "completed"
+	}
+	return "{status}:{job.detail}"
+}
+
+pub fn missingSummary(value: String) -> String {
+	return describeDomainError(DomainError.Missing(value))
+}
+
+pub fn describeDomainError(error: DomainError) -> String {
+	return match error {
+		Missing(value) => "missing:{value}"
+		InvalidStatus(value) => "invalid-status:{value}"
+	}
+}
