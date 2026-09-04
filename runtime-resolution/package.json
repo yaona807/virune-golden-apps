@@ -1,0 +1,19 @@
+{
+  "name": "virune-runtime-resolution-golden",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "check": "virune check",
+    "build": "virune build",
+    "start": "virune run",
+    "golden": "node scripts/verify-runtime-resolution.mjs"
+  },
+  "dependencies": {
+    "@virune-golden/runtime-shapes": "file:./fixtures/runtime-shapes"
+  },
+  "license": "Apache-2.0"
+}

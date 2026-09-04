@@ -1,0 +1,33 @@
+{
+  "name": "@virune-golden/runtime-shapes",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "node": {
+        "types": "./types/node.d.ts",
+        "import": "./runtime/node.mjs"
+      },
+      "default": {
+        "types": "./types/default.d.ts",
+        "default": "./runtime/default.mjs"
+      }
+    },
+    "./feature": {
+      "node": {
+        "types": "./types/feature-node.d.ts",
+        "import": "./runtime/feature-node.mjs"
+      },
+      "default": {
+        "types": "./types/feature-default.d.ts",
+        "default": "./runtime/feature-default.mjs"
+      }
+    },
+    "./legacy": {
+      "types": "./types/legacy.d.cts",
+      "import": "./runtime/legacy.cjs",
+      "default": "./runtime/legacy.cjs"
+    }
+  }
+}
