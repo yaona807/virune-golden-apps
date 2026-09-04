@@ -4,7 +4,7 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   generate-lock:
@@ -23,10 +23,18 @@ jobs:
       - name: Generate npm lockfile
         working-directory: multi-layer
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-      - name: Upload generated lockfile
-        uses: actions/upload-artifact@v4
-        with:
-          name: multi-layer-package-lock
-          path: multi-layer/package-lock.json
-          if-no-files-found: error
-          retention-days: 1
+      - name: Commit exact generated lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected='${{ github.event.pull_request.head.sha }}'
+          actual="$(git rev-parse HEAD)"
+          remote="$(git ls-remote origin 'refs/heads/test/29-multi-layer-reference' | cut -f1)"
+          test "$actual" = "$expected"
+          test "$remote" = "$expected"
+          git add multi-layer/package-lock.json
+          ! git diff --cached --quiet
+          git config user.name 'Yaona'
+          git config user.email '72598968+yaona807@users.noreply.github.com'
+          git commit -m 'test(golden): lock multi-layer dependencies'
+          git push origin HEAD:test/29-multi-layer-reference
