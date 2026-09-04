@@ -10,7 +10,7 @@ import { describeDomainError, describeJob, fromStorage, missingSummary } from ".
 
 fn lifecycleHandler() -> Unit uses JavaScript {
 	let lifecycleSqlite = Database("multi-layer-golden.sqlite")
-	discard lifecycleSqlite.prepare("UPDATE jobs SET status = 'processing' WHERE id = 'job-42'").run()
+	discard lifecycleSqlite.exec("UPDATE jobs SET status = 'processing' WHERE id = 'job-42'")
 	discard lifecycleSqlite.close()
 	return Unit
 }
