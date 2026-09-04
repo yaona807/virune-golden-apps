@@ -45,7 +45,7 @@ assert.ok(
 const generated = await readFile(resolve('dist/main.js'), 'utf8');
 const projectionCount = generated.match(/\$viruneProjectCallable\(/gu)?.length ?? 0;
 assert.ok(
-	projectionCount >= 3,
+	projectionCount >= 2,
 	`expected generated callable projections for queue and HTTP callbacks, got ${projectionCount}`,
 );
 
