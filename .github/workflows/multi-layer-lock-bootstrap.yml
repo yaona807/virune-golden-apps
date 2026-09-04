@@ -23,6 +23,10 @@ jobs:
       - name: Generate npm lockfile
         working-directory: multi-layer
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-      - name: Emit generated lockfile
-        working-directory: multi-layer
-        run: cat package-lock.json
+      - name: Upload generated lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: multi-layer-package-lock
+          path: multi-layer/package-lock.json
+          if-no-files-found: error
+          retention-days: 1
