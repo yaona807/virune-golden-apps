@@ -114,16 +114,20 @@ async function writeProject(root) {
   await writeFile(join(sourceDirectory, 'main.virune'), mainSource(), 'utf8');
 }
 
-function errorsOf(result) {
+function diagnosticsOf(result) {
   return result.diagnostics
-    .filter(item => item.severity === 'error')
     .map(item => ({ code: item.code, message: item.message, severity: item.severity }))
-    .sort((left, right) => compareText(`${left.code}\0${left.message}`, `${right.code}\0${right.message}`));
+    .sort((left, right) => compareText(`${left.code}\0${left.severity}\0${left.message}`, `${right.code}\0${right.severity}\0${right.message}`));
+}
+
+function errorCount(snapshot) {
+  return snapshot.diagnostics.filter(item => item.severity === 'error').length;
 }
 
 function canonicalResult(result, root, { allowErrors = false } = {}) {
-  const errors = errorsOf(result);
-  if (!allowErrors) assert.deepEqual(errors, [], 'generated project must be diagnostic-clean');
+  const diagnostics = diagnosticsOf(result);
+  if (!allowErrors) assert.equal(errorCount({ diagnostics }), 0, 'generated project must be diagnostic-clean');
+  assert.equal(JSON.stringify(diagnostics).includes(root), false, 'diagnostic evidence leaked absolute project root');
   const modules = result.modules.map(module => {
     const usageIR = module.semantic?.interop.usageIR ?? [];
     const operations = module.semantic === undefined ? [] : externalOperationSequence(module.semantic);
@@ -137,7 +141,7 @@ function canonicalResult(result, root, { allowErrors = false } = {}) {
       operations,
     };
   }).sort((left, right) => compareText(left.path, right.path));
-  return { errors, modules };
+  return { diagnostics, modules };
 }
 
 function canonicalDigest(snapshot) {
@@ -356,7 +360,7 @@ try {
   const incompatibleIncrementalResult = await incremental.build(firstRoot, { write: false, jsInteropProvider: activeProvider });
   const incompatibleIncremental = canonicalResult(incompatibleIncrementalResult, firstRoot, { allowErrors: true });
   const incompatibleFresh = await freshBuild(firstRoot, 4, { allowErrors: true });
-  assert.ok(incompatibleIncremental.errors.length >= WORKER_COUNT, 'incompatible declaration did not fail closed across generated workers');
+  assert.ok(errorCount(incompatibleIncremental) >= WORKER_COUNT, 'incompatible declaration did not fail closed across generated workers');
   assert.deepEqual(incompatibleIncremental, incompatibleFresh, 'rotated provider generation disagreed with fresh declaration evidence');
   assert.equal(canonicalDigest(incompatibleIncremental), canonicalDigest(incompatibleFresh));
   assert.notEqual(canonicalDigest(incompatibleIncremental), baselineDigest, 'declaration mutation was not observable in canonical digest');
@@ -374,7 +378,7 @@ try {
   assert.equal(canonicalDigest(recoveredIncremental), baselineDigest, 'restored declaration did not recover baseline digest');
 
   process.stdout.write(
-    `Verified ${WORKER_COUNT + 1} baseline modules, ${WORKER_COUNT * CALLS_PER_WORKER} typed External calls, canonical Usage IR/operation/runtime-witness/code digest parity, module add/delete recovery, package-metadata invalidation/recovery, declaration fail-closed recovery, and equivalent-root determinism.\n`,
+    `Verified ${WORKER_COUNT + 1} baseline modules, ${WORKER_COUNT * CALLS_PER_WORKER} typed External calls, canonical diagnostic/Usage IR/operation/runtime-witness/code digest parity, module add/delete recovery, package-metadata invalidation/recovery, declaration fail-closed recovery, and equivalent-root determinism.\n`,
   );
 } finally {
   if (activeProvider !== undefined) disposeProvider(activeProvider);
