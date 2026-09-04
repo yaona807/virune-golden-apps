@@ -1,0 +1,13 @@
+{
+  "name": "virune-generated-scale-determinism-golden",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "golden": "node scripts/verify-scale-determinism.mjs"
+  },
+  "license": "Apache-2.0"
+}
