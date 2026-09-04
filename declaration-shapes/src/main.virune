@@ -1,0 +1,18 @@
+import js { customAlphabet } from "nanoid"
+import js ms from "ms"
+
+@jsExport
+pub fn runDeclarationShapes() -> String uses JavaScript {
+	let generator = customAlphabet("abc", 7)
+	let defaultId = generator()
+	let explicitId = generator(4)
+	let parsed = ms("2h")
+	let formatted = ms(60000)
+	return "{defaultId}:{explicitId}:{parsed}:{formatted}"
+}
+
+pub fn main() -> Unit uses JavaScript, Console {
+	let result = runDeclarationShapes()
+	Console.print("golden:declaration-shapes:{result}")
+	return Unit
+}

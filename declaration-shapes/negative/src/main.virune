@@ -1,0 +1,11 @@
+import js ms from "ms"
+
+fn rejectBroadString(value: String) -> Unit uses JavaScript {
+	discard ms(value)
+	return Unit
+}
+
+pub fn main() -> Unit uses JavaScript {
+	rejectBroadString("2h")
+	return Unit
+}
