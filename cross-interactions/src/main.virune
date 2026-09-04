@@ -1,0 +1,22 @@
+import js { Pipeline, select } from "./library.js"
+
+fn decorate(value: String) -> String {
+	return "{value}!"
+}
+
+@jsExport
+pub fn runCrossInteractions() -> String uses JavaScript {
+	let pipeline = Pipeline({ initial: "a", transform: decorate })
+	let slot = pipeline.slot
+	slot["value"] = "b"
+	let joined = slot.join("?")
+	let transformed = pipeline.run()
+	let selected = select({ kind: "typed", value: "a", transform: decorate })
+	return "{joined}:{transformed}|{selected}"
+}
+
+pub fn main() -> Unit uses JavaScript, Console {
+	let result = runCrossInteractions()
+	Console.print("golden:cross-interactions:{result}")
+	return Unit
+}
