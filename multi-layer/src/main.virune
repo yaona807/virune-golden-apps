@@ -8,25 +8,24 @@ import js PQueue from "p-queue"
 import js { h, render } from "preact"
 import { describeDomainError, describeJob, fromStorage, missingSummary } from "./domain.virune"
 
-let lifecycleActive = false
+let sqlite = Database(":memory:")
+let jobs = sqliteTable("jobs", {
+	id: text("id").primaryKey(),
+	status: text("status").notNull(),
+	detail: text("detail").notNull(),
+})
+let db = drizzle({ client: sqlite })
 
-fn lifecycleHandler() -> Unit {
-	lifecycleActive = true
+fn lifecycleHandler() -> Unit uses JavaScript {
+	discard db.update(jobs).set({
+		status: "processing",
+	}).where(eq(jobs.id, "job-42")).run()
 	return Unit
 }
 
 @jsExport
 pub async fn runMultiLayer() -> String uses JavaScript {
-	lifecycleActive = false
-	let sqlite = Database(":memory:")
 	discard sqlite.exec("CREATE TABLE jobs (id TEXT PRIMARY KEY, status TEXT NOT NULL, detail TEXT NOT NULL)")
-
-	let jobs = sqliteTable("jobs", {
-		id: text("id").primaryKey(),
-		status: text("status").notNull(),
-		detail: text("detail").notNull(),
-	})
-	let db = drizzle({ client: sqlite })
 
 	discard db.insert(jobs).values({
 		id: "job-42",
@@ -51,11 +50,6 @@ pub async fn runMultiLayer() -> String uses JavaScript {
 	discard queue.on("active", lifecycleHandler)
 
 	let updateResult = await queue.add(fn() -> Unit uses JavaScript {
-		if lifecycleActive {
-			discard db.update(jobs).set({
-				status: "processing",
-			}).where(eq(jobs.id, "job-42")).run()
-		}
 		discard db.update(jobs).set({
 			status: "completed",
 		}).where(eq(jobs.status, "processing")).run()
@@ -63,14 +57,8 @@ pub async fn runMultiLayer() -> String uses JavaScript {
 	})
 	discard updateResult
 
-	lifecycleActive = false
 	discard queue.off("active", lifecycleHandler)
 	let publishResult = await queue.add(fn() -> Unit uses JavaScript {
-		if lifecycleActive {
-			discard db.update(jobs).set({
-				status: "processing",
-			}).where(eq(jobs.id, "job-42")).run()
-		}
 		discard db.update(jobs).set({
 			detail: "published",
 		}).where(eq(jobs.id, "job-42")).run()
