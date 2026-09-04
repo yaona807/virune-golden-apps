@@ -31,9 +31,7 @@ pub async fn runMultiLayer() -> String uses JavaScript {
 		status: jobs.status,
 		detail: jobs.detail,
 	}).from(jobs).where(eq(jobs.id, "job-42")).all()
-	if queuedRows.length != 1.0 {
-		return panic("expected exactly one queued row")
-	}
+	let queuedCount = queuedRows.length
 	let queuedRow = queuedRows.reduce(fn(left, right) => left)
 	let queuedOutcome = fromStorage(queuedRow.id, queuedRow.status, queuedRow.detail)
 	let queuedSummary = match queuedOutcome {
@@ -55,9 +53,7 @@ pub async fn runMultiLayer() -> String uses JavaScript {
 		status: jobs.status,
 		detail: jobs.detail,
 	}).from(jobs).where(eq(jobs.id, "job-42")).all()
-	if completedRows.length != 1.0 {
-		return panic("expected exactly one completed row")
-	}
+	let completedCount = completedRows.length
 	let completedRow = completedRows.reduce(fn(left, right) => left)
 	let completedOutcome = fromStorage(completedRow.id, completedRow.status, completedRow.detail)
 	let completedSummary = match completedOutcome {
@@ -68,9 +64,7 @@ pub async fn runMultiLayer() -> String uses JavaScript {
 	let missingRows = db.select({
 		id: jobs.id,
 	}).from(jobs).where(eq(jobs.id, "missing")).all()
-	if missingRows.length != 0.0 {
-		return panic("missing job unexpectedly existed")
-	}
+	let missingCount = missingRows.length
 
 	let app = Hono()
 	let routes = app.get("/jobs/job-42", async fn(c) uses JavaScript => c.text(completedSummary))
@@ -88,7 +82,7 @@ pub async fn runMultiLayer() -> String uses JavaScript {
 	let html = root.innerHTML
 
 	discard sqlite.close()
-	return "{queuedSummary}|{foundResponse.status}:{foundBody}|{missingResponse.status}:{missingBody}|{html}"
+	return "{queuedCount}|{completedCount}|{missingCount}|{queuedSummary}|{foundResponse.status}:{foundBody}|{missingResponse.status}:{missingBody}|{html}"
 }
 
 pub async fn main() -> Unit uses JavaScript, Console {
