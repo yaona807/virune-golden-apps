@@ -8,24 +8,24 @@ import js PQueue from "p-queue"
 import js { h, render } from "preact"
 import { describeDomainError, describeJob, fromStorage, missingSummary } from "./domain.virune"
 
-let sqlite = Database(":memory:")
-let jobs = sqliteTable("jobs", {
-	id: text("id").primaryKey(),
-	status: text("status").notNull(),
-	detail: text("detail").notNull(),
-})
-let db = drizzle({ client: sqlite })
-
 fn lifecycleHandler() -> Unit uses JavaScript {
-	discard db.update(jobs).set({
-		status: "processing",
-	}).where(eq(jobs.id, "job-42")).run()
+	let lifecycleSqlite = Database("multi-layer-golden.sqlite")
+	discard lifecycleSqlite.prepare("UPDATE jobs SET status = 'processing' WHERE id = 'job-42'").run()
+	discard lifecycleSqlite.close()
 	return Unit
 }
 
 @jsExport
 pub async fn runMultiLayer() -> String uses JavaScript {
-	discard sqlite.exec("CREATE TABLE jobs (id TEXT PRIMARY KEY, status TEXT NOT NULL, detail TEXT NOT NULL)")
+	let sqlite = Database("multi-layer-golden.sqlite")
+	discard sqlite.exec("DROP TABLE IF EXISTS jobs; CREATE TABLE jobs (id TEXT PRIMARY KEY, status TEXT NOT NULL, detail TEXT NOT NULL)")
+
+	let jobs = sqliteTable("jobs", {
+		id: text("id").primaryKey(),
+		status: text("status").notNull(),
+		detail: text("detail").notNull(),
+	})
+	let db = drizzle({ client: sqlite })
 
 	discard db.insert(jobs).values({
 		id: "job-42",
