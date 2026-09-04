@@ -114,19 +114,42 @@ async function writeProject(root) {
   await writeFile(join(sourceDirectory, 'main.virune'), mainSource(), 'utf8');
 }
 
-function diagnosticsOf(result) {
+function diagnosticsOf(result, root) {
+  const sourcePathById = new Map(
+    result.modules.map(module => [module.source.id, relative(root, module.source.path).replaceAll('\\', '/')]),
+  );
   return result.diagnostics
-    .map(item => ({ code: item.code, message: item.message, severity: item.severity }))
-    .sort((left, right) => compareText(`${left.code}\0${left.severity}\0${left.message}`, `${right.code}\0${right.severity}\0${right.message}`));
+    .map(item => ({
+      code: item.code,
+      severity: item.severity,
+      message: item.message,
+      path: sourcePathById.get(item.span.fileId) ?? null,
+      span: {
+        start: {
+          offset: item.span.start.offset,
+          line: item.span.start.line,
+          column: item.span.start.column,
+        },
+        end: {
+          offset: item.span.end.offset,
+          line: item.span.end.line,
+          column: item.span.end.column,
+        },
+      },
+    }))
+    .sort((left, right) => compareText(
+      `${left.path ?? ''}\0${left.span.start.offset}\0${left.code}\0${left.severity}\0${left.message}`,
+      `${right.path ?? ''}\0${right.span.start.offset}\0${right.code}\0${right.severity}\0${right.message}`,
+    ));
 }
 
-function errorCount(snapshot) {
-  return snapshot.diagnostics.filter(item => item.severity === 'error').length;
+function errorCount(diagnostics) {
+  return diagnostics.filter(item => item.severity === 'error').length;
 }
 
 function canonicalResult(result, root, { allowErrors = false } = {}) {
-  const diagnostics = diagnosticsOf(result);
-  if (!allowErrors) assert.equal(errorCount({ diagnostics }), 0, 'generated project must be diagnostic-clean');
+  const diagnostics = diagnosticsOf(result, root);
+  if (!allowErrors) assert.equal(errorCount(diagnostics), 0, 'generated project must be diagnostic-clean');
   assert.equal(JSON.stringify(diagnostics).includes(root), false, 'diagnostic evidence leaked absolute project root');
   const modules = result.modules.map(module => {
     const usageIR = module.semantic?.interop.usageIR ?? [];
@@ -360,7 +383,7 @@ try {
   const incompatibleIncrementalResult = await incremental.build(firstRoot, { write: false, jsInteropProvider: activeProvider });
   const incompatibleIncremental = canonicalResult(incompatibleIncrementalResult, firstRoot, { allowErrors: true });
   const incompatibleFresh = await freshBuild(firstRoot, 4, { allowErrors: true });
-  assert.ok(errorCount(incompatibleIncremental) >= WORKER_COUNT, 'incompatible declaration did not fail closed across generated workers');
+  assert.ok(errorCount(incompatibleIncremental.diagnostics) >= WORKER_COUNT, 'incompatible declaration did not fail closed across generated workers');
   assert.deepEqual(incompatibleIncremental, incompatibleFresh, 'rotated provider generation disagreed with fresh declaration evidence');
   assert.equal(canonicalDigest(incompatibleIncremental), canonicalDigest(incompatibleFresh));
   assert.notEqual(canonicalDigest(incompatibleIncremental), baselineDigest, 'declaration mutation was not observable in canonical digest');
