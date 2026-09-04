@@ -1,0 +1,17 @@
+import js { root } from "@virune-golden/runtime-shapes"
+import js { feature } from "@virune-golden/runtime-shapes/feature"
+import js legacy from "@virune-golden/runtime-shapes/legacy"
+
+@jsExport
+pub fn runRuntimeResolution() -> String uses JavaScript {
+	let rootValue = root("node")
+	let featureValue = feature("feature")
+	let legacyValue = legacy("legacy")
+	return "{rootValue}|{featureValue}|{legacyValue}"
+}
+
+pub fn main() -> Unit uses JavaScript, Console {
+	let result = runRuntimeResolution()
+	Console.print("golden:runtime-resolution:{result}")
+	return Unit
+}
