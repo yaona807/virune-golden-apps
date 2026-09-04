@@ -1,0 +1,16 @@
+{
+  "name": "virune-cross-interactions-golden",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "check": "virune check",
+    "build": "virune build",
+    "start": "virune run",
+    "golden": "node scripts/verify-cross-interactions.mjs"
+  },
+  "license": "Apache-2.0"
+}
