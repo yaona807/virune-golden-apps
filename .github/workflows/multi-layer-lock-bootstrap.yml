@@ -7,8 +7,8 @@ permissions:
   contents: write
 
 jobs:
-  generate-lock:
-    name: Generate multi-layer npm lock
+  finalize:
+    name: Finalize multi-layer consumer workflow
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout exact Golden head
@@ -16,14 +16,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 1
-      - name: Use Node 24
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - name: Generate npm lockfile
-        working-directory: multi-layer
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-      - name: Commit exact generated lockfile
+      - name: Append consumer job and remove bootstrap workflow
         shell: bash
         run: |
           set -euo pipefail
@@ -32,9 +25,67 @@ jobs:
           remote="$(git ls-remote origin 'refs/heads/test/29-multi-layer-reference' | cut -f1)"
           test "$actual" = "$expected"
           test "$remote" = "$expected"
-          git add multi-layer/package-lock.json
-          ! git diff --cached --quiet
+          test -f multi-layer/package-lock.json
+          test -f multi-layer/src/main.virune
+          ! grep -q '^  multi-layer-consumer:$' .github/workflows/p-queue-golden.yml
+          cat >> .github/workflows/p-queue-golden.yml <<'EOF'
+
+  multi-layer-consumer:
+    name: Multi-layer reference / Ubuntu 24.04 / Node 24 consumer
+    needs: candidate-producer
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact Golden head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify producer identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ needs.candidate-producer.outputs.virune_sha }}" = "$VIRUNE_CANDIDATE_SHA"
+          test "$(git rev-parse HEAD)" = "${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
+      - name: Download exact Virune release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: virune-candidate
+          path: .candidate/virune-release
+      - name: Verify downloaded release checksums
+        working-directory: .candidate/virune-release
+        run: sha256sum --check SHA256SUMS
+      - name: Verify six-package candidate identity
+        run: node scripts/verify-candidate.mjs .candidate/virune-release
+      - name: Install pinned multi-layer dependencies
+        working-directory: multi-layer
+        run: npm ci
+      - name: Install exact Virune six-package consumer surface
+        working-directory: multi-layer
+        run: node ../scripts/install-candidate.mjs ../.candidate/virune-release
+      - name: Assert consumer-only workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e virune-source
+          test ! -e ../virune-source
+          ! git grep -nE '(packages/.*/src|\.\./virune|workspace:)' -- multi-layer scripts
+      - name: Virune check
+        working-directory: multi-layer
+        run: npm run check
+      - name: Virune build
+        working-directory: multi-layer
+        run: npm run build
+      - name: Run multi-layer Golden scenario
+        working-directory: multi-layer
+        run: npm run golden
+EOF
+          rm .github/workflows/multi-layer-lock-bootstrap.yml
+          git add .github/workflows/p-queue-golden.yml .github/workflows/multi-layer-lock-bootstrap.yml
           git config user.name 'Yaona'
           git config user.email '72598968+yaona807@users.noreply.github.com'
-          git commit -m 'test(golden): lock multi-layer dependencies'
+          git commit -m 'ci(golden): validate multi-layer reference consumer'
           git push origin HEAD:test/29-multi-layer-reference
