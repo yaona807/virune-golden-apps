@@ -46,4 +46,6 @@ CI is added only with a real consumer validation path; a green workflow is evide
 
 ## Current status
 
-The Phase 2 consumer-validation contract and repository workflow are established. Phase 2A implementation starts with the `p-queue` Virune Media Jobs slice in #17; later framework/library slices remain deliberately unimplemented until their focused work items are active.
+The reviewed-candidate lane is converged through Phase 2A.5. Current Golden coverage includes p-queue / identity-sensitive queue work, Hono / HTTP, Drizzle + better-sqlite3 / typed DB, Preact + jsdom / frontend, shared Virune-native domain semantics, real npm declaration-shape probes, a multi-layer reference application, generated scale/determinism and stale-state stress, high-risk Direct cross-interactions, and runtime-resolution branch consistency. Tracking Issue [#1](https://github.com/yaona807/virune-golden-apps/issues/1) is the canonical source for exact candidate identities, CI runs, defects, and completion evidence.
+
+The final Phase 2A.5 declaration/runtime inventory found no meaningful current-shipped Direct gap that requires a second npm ecosystem probe merely to increase package count. Phase 2B remains pending until [`yaona807/virune#518`](https://github.com/yaona807/virune/issues/518) establishes the authenticated npm bootstrap / Trusted Publisher state and an exact public `v1.1.0-rc.*` package set is available for clean replay.
