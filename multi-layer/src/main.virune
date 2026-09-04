@@ -31,19 +31,23 @@ pub async fn runMultiLayer() -> String uses JavaScript {
 		status: jobs.status,
 		detail: jobs.detail,
 	}).from(jobs).where(eq(jobs.id, "job-42")).all()
-	if queuedRows.length != 1 {
+	if queuedRows.length != 1.0 {
 		return panic("expected exactly one queued row")
 	}
-	let queuedOutcome = fromStorage(queuedRows[0].id, queuedRows[0].status, queuedRows[0].detail)
+	let queuedRow = queuedRows.reduce(fn(left, right) => left)
+	let queuedOutcome = fromStorage(queuedRow.id, queuedRow.status, queuedRow.detail)
 	let queuedSummary = match queuedOutcome {
 		Ok(job) => describeJob(job)
 		Err(error) => describeDomainError(error)
 	}
 
 	let queue = PQueue({ concurrency: 1 })
-	let updateResult = await queue.add(fn() uses JavaScript => db.update(jobs).set({
-		status: "completed",
-	}).where(eq(jobs.id, "job-42")).run())
+	let updateResult = await queue.add(fn() -> Unit uses JavaScript {
+		discard db.update(jobs).set({
+			status: "completed",
+		}).where(eq(jobs.id, "job-42")).run()
+		return Unit
+	})
 	discard updateResult
 
 	let completedRows = db.select({
@@ -51,10 +55,11 @@ pub async fn runMultiLayer() -> String uses JavaScript {
 		status: jobs.status,
 		detail: jobs.detail,
 	}).from(jobs).where(eq(jobs.id, "job-42")).all()
-	if completedRows.length != 1 {
+	if completedRows.length != 1.0 {
 		return panic("expected exactly one completed row")
 	}
-	let completedOutcome = fromStorage(completedRows[0].id, completedRows[0].status, completedRows[0].detail)
+	let completedRow = completedRows.reduce(fn(left, right) => left)
+	let completedOutcome = fromStorage(completedRow.id, completedRow.status, completedRow.detail)
 	let completedSummary = match completedOutcome {
 		Ok(job) => describeJob(job)
 		Err(error) => describeDomainError(error)
@@ -63,7 +68,7 @@ pub async fn runMultiLayer() -> String uses JavaScript {
 	let missingRows = db.select({
 		id: jobs.id,
 	}).from(jobs).where(eq(jobs.id, "missing")).all()
-	if missingRows.length != 0 {
+	if missingRows.length != 0.0 {
 		return panic("missing job unexpectedly existed")
 	}
 
