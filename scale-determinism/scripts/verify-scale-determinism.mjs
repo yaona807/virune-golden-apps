@@ -204,10 +204,11 @@ function assertRuntimeWitnesses(snapshot, runtimeEntry, workerCount) {
 function assertBarePackageImports(snapshot) {
   const escaped = PACKAGE_NAME.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
   const packageImport = new RegExp(`from ["']${escaped}["']`, 'u');
+  const packageInternalImport = new RegExp(`${escaped}/(?:index|alternate)\\.js`, 'u');
   for (const module of snapshot.modules) {
     if (!module.path.includes('worker-') || module.code === null) continue;
     assert.match(module.code, packageImport, `${module.path} did not preserve bare package import`);
-    assert.doesNotMatch(module.code, /(?:index|alternate)\.js/u, `${module.path} encoded package-internal runtime path`);
+    assert.doesNotMatch(module.code, packageInternalImport, `${module.path} encoded package-internal runtime path`);
   }
 }
 
