@@ -1,0 +1,28 @@
+name: Multi-layer lock bootstrap
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  generate-lock:
+    name: Generate multi-layer npm lock
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact Golden head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Generate npm lockfile
+        working-directory: multi-layer
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Emit generated lockfile
+        working-directory: multi-layer
+        run: cat package-lock.json
