@@ -22,7 +22,7 @@ for (const [name, version] of expectedVersions) {
 	assert.equal(manifest.version, version, `unexpected ${name} version`);
 }
 
-const expected = '1|1|0|queued:preview|200:completed:preview|404:missing:missing|<div id="job-state">completed:preview</div>';
+const expected = '1|1|0|queued:preview|200:completed:published|404:missing:missing|<div id="job-state">completed:published</div>';
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const hostLoader = pathToFileURL(resolve('scripts/jsdom-host.mjs')).href;
 const nodeOptions = [process.env.NODE_OPTIONS, `--import=${hostLoader}`].filter(Boolean).join(' ');
@@ -49,8 +49,8 @@ assert.equal(projectionHelpers, 1, `expected one callable projection helper, got
 const projectionCallCount = projectionOccurrences - projectionHelpers;
 assert.equal(
 	projectionCallCount,
-	5,
-	`expected five generated callback projection call sites for two row reductions, queue work, and two HTTP routes; got ${projectionCallCount}`,
+	8,
+	`expected eight generated callback projection call sites for two row reductions, on/off identity, two queue workers, and two HTTP routes; got ${projectionCallCount}`,
 );
 
 await import(`${hostLoader}?multi-layer-host`);
@@ -59,4 +59,4 @@ const directResult = await golden.runMultiLayer();
 assert.equal(directResult, expected);
 assert.doesNotMatch(directResult, /\$tag|\$values|\[object Object\]/u);
 
-process.stdout.write('Verified exact DB row counts plus queued-to-completed state across DB, queue, native domain, HTTP, and UI boundaries.\n');
+process.stdout.write('Verified event-driven queued-to-processing-to-completed lifecycle plus on/off callback identity across DB, queue, native domain, HTTP, and UI boundaries.\n');
