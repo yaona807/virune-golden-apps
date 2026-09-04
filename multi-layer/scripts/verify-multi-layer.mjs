@@ -22,7 +22,7 @@ for (const [name, version] of expectedVersions) {
 	assert.equal(manifest.version, version, `unexpected ${name} version`);
 }
 
-const expected = 'queued:preview|200:completed:preview|404:missing:missing|<div id="job-state">completed:preview</div>';
+const expected = '1|1|0|queued:preview|200:completed:preview|404:missing:missing|<div id="job-state">completed:preview</div>';
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const hostLoader = pathToFileURL(resolve('scripts/jsdom-host.mjs')).href;
 const nodeOptions = [process.env.NODE_OPTIONS, `--import=${hostLoader}`].filter(Boolean).join(' ');
@@ -59,4 +59,4 @@ const directResult = await golden.runMultiLayer();
 assert.equal(directResult, expected);
 assert.doesNotMatch(directResult, /\$tag|\$values|\[object Object\]/u);
 
-process.stdout.write('Verified queued-to-completed state across DB, queue, native domain, HTTP, and UI boundaries.\n');
+process.stdout.write('Verified exact DB row counts plus queued-to-completed state across DB, queue, native domain, HTTP, and UI boundaries.\n');
