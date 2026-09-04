@@ -1,0 +1,40 @@
+name: Replay merged Virune candidate
+
+on:
+  push:
+    branches:
+      - test/29-multi-layer-reference
+
+permissions:
+  contents: write
+
+jobs:
+  update-candidate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: test/29-multi-layer-reference
+          fetch-depth: 0
+      - name: Update exact candidate and remove updater
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('.github/workflows/p-queue-golden.yml')
+          text = path.read_text()
+          old = 'VIRUNE_CANDIDATE_SHA: 517ca3fdc85e96f41632883d43bf1adf770f8796'
+          new = 'VIRUNE_CANDIDATE_SHA: b5df252df1514c5a4931f7df57d20bbf2f178558'
+          if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one old candidate, found {text.count(old)}')
+          path.write_text(text.replace(old, new))
+          PY
+          git add .github/workflows/p-queue-golden.yml
+          git commit -m "ci(golden): replay merged #619 candidate"
+          rm .github/workflows/agent-replay-619.yml
+          git add -u .github/workflows/agent-replay-619.yml
+          git commit -m "chore: remove temporary #619 replay updater"
+          git push origin HEAD:test/29-multi-layer-reference
