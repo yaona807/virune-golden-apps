@@ -40,13 +40,30 @@ pub async fn runMultiLayer() -> String uses JavaScript {
 	}
 
 	let queue = PQueue({ concurrency: 1 })
+	let lifecycleHandler = fn() -> Unit uses JavaScript {
+		discard db.update(jobs).set({
+			status: "processing",
+		}).where(eq(jobs.id, "job-42")).run()
+		return Unit
+	}
+	discard queue.on("active", lifecycleHandler)
+
 	let updateResult = await queue.add(fn() -> Unit uses JavaScript {
 		discard db.update(jobs).set({
 			status: "completed",
-		}).where(eq(jobs.id, "job-42")).run()
+		}).where(eq(jobs.status, "processing")).run()
 		return Unit
 	})
 	discard updateResult
+
+	discard queue.off("active", lifecycleHandler)
+	let publishResult = await queue.add(fn() -> Unit uses JavaScript {
+		discard db.update(jobs).set({
+			detail: "published",
+		}).where(eq(jobs.id, "job-42")).run()
+		return Unit
+	})
+	discard publishResult
 
 	let completedRows = db.select({
 		id: jobs.id,
