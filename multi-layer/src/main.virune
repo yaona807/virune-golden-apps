@@ -66,16 +66,10 @@ pub async fn runMultiLayer() -> String uses JavaScript {
 	if missingRows.length != 0 {
 		return panic("missing job unexpectedly existed")
 	}
-	let missing = missingSummary("missing")
 
 	let app = Hono()
-	discard app.get("/jobs/:id", async fn(c) uses JavaScript {
-		let requested = c.req.param("id")
-		if requested == "job-42" {
-			return c.text(completedSummary)
-		}
-		return c.text(missing, 404)
-	})
+	let routes = app.get("/jobs/job-42", async fn(c) uses JavaScript => c.text(completedSummary))
+	discard routes.get("/jobs/:id", async fn(c) uses JavaScript => c.text(missingSummary(c.req.param("id")), 404))
 
 	let foundResponse = await app.request("/jobs/job-42")
 	let foundBody = await foundResponse.text()
