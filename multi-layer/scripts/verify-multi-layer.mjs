@@ -47,9 +47,10 @@ const projectionOccurrences = generated.match(/\$viruneProjectCallable\(/gu)?.le
 const projectionHelpers = generated.match(/function \$viruneProjectCallable\(/gu)?.length ?? 0;
 assert.equal(projectionHelpers, 1, `expected one callable projection helper, got ${projectionHelpers}`);
 const projectionCallCount = projectionOccurrences - projectionHelpers;
-assert.ok(
-	projectionCallCount >= 3,
-	`expected generated callable projection call sites for queue and HTTP callbacks, got ${projectionCallCount}`,
+assert.equal(
+	projectionCallCount,
+	5,
+	`expected five generated callback projection call sites for two row reductions, queue work, and two HTTP routes; got ${projectionCallCount}`,
 );
 
 await import(`${hostLoader}?multi-layer-host`);
