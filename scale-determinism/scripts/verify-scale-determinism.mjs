@@ -26,6 +26,10 @@ const incompatibleDeclaration = [
   '',
 ].join('\n');
 
+function compareText(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 function workerName(index) {
   return `worker-${String(index).padStart(3, '0')}`;
 }
@@ -77,7 +81,7 @@ function errorsOf(result) {
   return result.diagnostics
     .filter(item => item.severity === 'error')
     .map(item => ({ code: item.code, message: item.message, severity: item.severity }))
-    .sort((left, right) => `${left.code}\0${left.message}`.localeCompare(`${right.code}\0${right.message}`));
+    .sort((left, right) => compareText(`${left.code}\0${left.message}`, `${right.code}\0${right.message}`));
 }
 
 function canonicalResult(result, root, { allowErrors = false } = {}) {
@@ -87,7 +91,7 @@ function canonicalResult(result, root, { allowErrors = false } = {}) {
     path: relative(root, module.source.path).replaceAll('\\', '/'),
     code: module.output?.code ?? null,
     operations: module.semantic === undefined ? [] : externalOperationSequence(module.semantic),
-  })).sort((left, right) => left.path.localeCompare(right.path));
+  })).sort((left, right) => compareText(left.path, right.path));
   return { errors, modules };
 }
 
