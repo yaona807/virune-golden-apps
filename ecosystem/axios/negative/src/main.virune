@@ -1,0 +1,9 @@
+import js axios from "axios"
+
+pub fn main() -> Unit uses JavaScript {
+	discard axios.getUri({
+		url: "/users",
+		params: { page: 2 },
+	})
+	return Unit
+}

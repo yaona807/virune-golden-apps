@@ -1,0 +1,20 @@
+import js axios from "axios"
+
+pub async fn runAxiosEcosystem() -> String uses JavaScript {
+	let uriClient = axios.create({
+		baseURL: "http://example.com/api",
+	})
+	let uri = uriClient.getUri({
+		url: "/users",
+	})
+	let requestClient = axios.create()
+	let response = await requestClient.get("data:text/plain,safe", {
+		responseType: "text",
+	})
+	return "ecosystem:axios:{uri}:{response.status}"
+}
+
+pub async fn main() -> Unit uses JavaScript, Console {
+	Console.print(await runAxiosEcosystem())
+	return Unit
+}
