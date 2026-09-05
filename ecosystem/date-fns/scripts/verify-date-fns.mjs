@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const dateFnsManifest = JSON.parse(
 	await readFile(resolve('node_modules/date-fns/package.json'), 'utf8'),
@@ -31,9 +32,10 @@ function runScript(script) {
 }
 
 const expected = 'ecosystem:date-fns:2026-09-08:true';
-const referenceLines = runScript('reference');
-const referenceResult = referenceLines.find(line => line.startsWith('ecosystem:date-fns:'));
-assert.equal(referenceResult, expected, `unexpected TypeScript reference result: ${JSON.stringify(referenceLines)}`);
+runScript('reference');
+const referenceModule = await import(pathToFileURL(resolve('.reference-dist/reference.js')).href);
+const referenceResult = referenceModule.result;
+assert.equal(referenceResult, expected, `unexpected TypeScript reference result: ${referenceResult}`);
 
 const viruneLines = runScript('start');
 const viruneResult = viruneLines.find(line => line.startsWith('ecosystem:date-fns:'));
