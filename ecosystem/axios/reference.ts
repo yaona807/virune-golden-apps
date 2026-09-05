@@ -1,12 +1,13 @@
 import axios from 'axios';
 
-const client = axios.create({
+const uriClient = axios.create({
 	baseURL: 'http://example.com/api',
 });
-const uri = client.getUri({
+const uri = uriClient.getUri({
 	url: '/users',
 });
-const response = await client.get('data:text/plain,safe', {
+const requestClient = axios.create();
+const response = await requestClient.get('data:text/plain,safe', {
 	responseType: 'text',
 });
 
