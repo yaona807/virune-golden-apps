@@ -4,6 +4,8 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+process.env.TZ = 'UTC';
+
 const dateFnsManifest = JSON.parse(
 	await readFile(resolve('node_modules/date-fns/package.json'), 'utf8'),
 );
@@ -15,7 +17,7 @@ const typescriptManifest = JSON.parse(
 assert.equal(typescriptManifest.version, '6.0.3');
 
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-const environment = { ...process.env, TZ: 'UTC' };
+const environment = { ...process.env };
 
 function runScript(script) {
 	const run = spawnSync(npm, ['run', '--silent', script], {
