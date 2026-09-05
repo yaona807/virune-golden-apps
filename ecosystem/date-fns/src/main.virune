@@ -1,0 +1,14 @@
+import js { addDays, format, isAfter, parseISO } from "date-fns"
+
+fn runDateFnsEcosystem() -> String uses JavaScript {
+	let parsed = parseISO("2026-09-05T00:00:00.000Z")
+	let shifted = addDays(parsed, 3)
+	let formatted = format(shifted, "yyyy-MM-dd")
+	let after = isAfter(shifted, parsed)
+	return "ecosystem:date-fns:{formatted}:{after}"
+}
+
+pub fn main() -> Unit uses JavaScript, Console {
+	Console.print(runDateFnsEcosystem())
+	return Unit
+}
