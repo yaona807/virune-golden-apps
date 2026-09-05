@@ -1,7 +1,6 @@
 import js { addDays, format, isAfter, parseISO } from "date-fns"
 
-@jsExport
-pub fn runDateFnsEcosystem() -> String uses JavaScript {
+fn runDateFnsEcosystem() -> String uses JavaScript {
 	let parsed = parseISO("2026-09-05T00:00:00.000Z")
 	let shifted = addDays(parsed, 3)
 	let formatted = format(shifted, "yyyy-MM-dd")
