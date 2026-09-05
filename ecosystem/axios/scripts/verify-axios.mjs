@@ -29,7 +29,7 @@ function runScript(script) {
 	return run.stdout.split(/\r?\n/u).filter(Boolean);
 }
 
-const expected = 'ecosystem:axios:data:text/plain,safe:200';
+const expected = 'ecosystem:axios:http://example.com/api/users?page=2:200';
 runScript('reference');
 const referenceModule = await import(pathToFileURL(resolve('.reference-dist/reference.js')).href);
 const referenceResult = referenceModule.result;
@@ -40,4 +40,4 @@ const viruneResult = viruneLines.find(line => line.startsWith('ecosystem:axios:'
 assert.equal(viruneResult, expected, `unexpected Virune result: ${JSON.stringify(viruneLines)}`);
 assert.equal(viruneResult, referenceResult, 'Virune and TypeScript observable results diverged');
 
-process.stdout.write('PASS Axios ecosystem differential: create -> getUri -> await get -> status.\n');
+process.stdout.write('PASS Axios ecosystem differential: create defaults -> getUri params -> await get -> status.\n');

@@ -1,12 +1,11 @@
 import axios from 'axios';
 
 const client = axios.create({
-	timeout: 2500,
-	headers: { Accept: 'text/plain' },
+	baseURL: 'http://example.com/api',
 });
 const uri = client.getUri({
-	url: 'data:text/plain,safe',
-	responseType: 'text',
+	url: '/users',
+	params: { page: 2 },
 });
 const response = await client.get('data:text/plain,safe', {
 	responseType: 'text',
