@@ -31,8 +31,30 @@ pub fn runFrontend() -> String uses JavaScript {
 	return "{initialHtml}|{clickedHtml}|{updatedHtml}"
 }
 
+@jsExport
+pub fn runDirectDom() -> String uses JavaScript {
+	let dom = jsdom.JSDOM("<!doctype html><html><body></body></html>")
+	let document = dom.window.document
+	let root = document.createElement("section")
+	root.id = "direct-root"
+	let button = document.createElement("button")
+	button.id = "direct-action"
+	discard button.setAttribute("data-state", "ready")
+	discard root.appendChild(button)
+	discard document.body.appendChild(root)
+
+	let selected = document.querySelectorAll("#direct-action").item(0)
+	discard selected.setAttribute("data-selected", "yes")
+	let selectedId = selected.id
+	let missingCount = document.querySelectorAll("#missing").length
+
+	return "{root.outerHTML}|{selectedId}|{missingCount}"
+}
+
 pub fn main() -> Unit uses JavaScript, Console {
-	let result = runFrontend()
-	Console.print("golden:preact:{result}")
+	let frontendResult = runFrontend()
+	Console.print("golden:preact:{frontendResult}")
+	let directDomResult = runDirectDom()
+	Console.print("golden:dom:{directDomResult}")
 	return Unit
 }
