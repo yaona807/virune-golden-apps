@@ -10,7 +10,7 @@
     "check": "virune check",
     "build": "virune build",
     "start": "virune run",
-    "reference": "tsc -p tsconfig.json && node .reference-dist/reference.js",
+    "reference": "tsc -p tsconfig.json",
     "golden": "node scripts/verify-date-fns.mjs"
   },
   "dependencies": {
