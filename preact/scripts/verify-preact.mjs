@@ -47,6 +47,15 @@ assert.match(clickedHtml, />queued<\/button>/u);
 assert.match(updatedHtml, /<button[^>]*id="job-updated"[^>]*>completed<\/button>/u);
 assert.match(updatedHtml, /style="display: none;"/u);
 
+const listenerLines = run.stdout
+	.split(/\r?\n/u)
+	.filter(item => item === 'golden:dom-listener:called');
+assert.equal(
+	listenerLines.length,
+	1,
+	`expected one Direct DOM listener invocation before removal and none after removal: ${JSON.stringify(run.stdout)}`,
+);
+
 const domLine = run.stdout.split(/\r?\n/u).find(item => item.startsWith('golden:dom:'));
 assert.ok(domLine, `missing Direct DOM Golden output: ${JSON.stringify(run.stdout)}`);
 const domParts = domLine.slice('golden:dom:'.length).split('|');
@@ -59,11 +68,13 @@ assert.equal(missingCount, '0');
 
 const generated = await readFile(resolve('dist/main.js'), 'utf8');
 const projectionCount = generated.match(/\$viruneProjectCallable\(/gu)?.length ?? 0;
-assert.ok(projectionCount >= 1, `expected generated callable shim for Preact event handler, got ${projectionCount}`);
+assert.ok(projectionCount >= 2, `expected generated callable shims for Preact and Direct DOM handlers, got ${projectionCount}`);
 assert.match(generated, /\$fn\(\$raw0, rootTaskContext\(\)\)/u);
 assert.match(generated, /\([^)]*, \$lambdaCtx\d+ = rootTaskContext\(\)\) => \{/u);
 assert.match(generated, /querySelectorAll/u);
 assert.match(generated, /setAttribute/u);
+assert.match(generated, /addEventListener/u);
+assert.match(generated, /removeEventListener/u);
 
 const golden = await import(`${pathToFileURL(resolve('dist/main.js')).href}?golden-preact`);
 const replay = golden.runFrontend();
@@ -80,4 +91,4 @@ assert.match(replayDirectHtml, /data-selected="yes"/u);
 assert.equal(replaySelectedId, 'direct-action');
 assert.equal(replayMissingCount, '0');
 
-process.stdout.write('Verified Preact render/update plus supported Direct DOM query/create/read/write/tree operations.\n');
+process.stdout.write('Verified Preact render/update plus Direct DOM query/create/read/write/tree operations and add/remove listener identity.\n');
