@@ -1,11 +1,6 @@
 import js * as jsdom from "jsdom"
 import js { createElement, h, render } from "preact"
 
-fn directDomListener() -> Unit uses Console {
-	Console.print("golden:dom-listener:called")
-	return Unit
-}
-
 @jsExport
 pub fn runFrontend() -> String uses JavaScript {
 	let dom = jsdom.JSDOM("<!doctype html><html><body></body></html>")
@@ -37,7 +32,7 @@ pub fn runFrontend() -> String uses JavaScript {
 }
 
 @jsExport
-pub fn runDirectDom() -> String uses JavaScript, Console {
+pub fn runDirectDom() -> String uses JavaScript {
 	let dom = jsdom.JSDOM("<!doctype html><html><body></body></html>")
 	let document = dom.window.document
 	let root = document.createElement("section")
@@ -48,19 +43,12 @@ pub fn runDirectDom() -> String uses JavaScript, Console {
 	discard root.appendChild(button)
 	discard document.body.appendChild(root)
 
+	let selected = document.querySelectorAll("#direct-action").item(0)
+	discard selected.setAttribute("data-selected", "yes")
+	let selectedId = selected.id
 	let missingCount = document.querySelectorAll("#missing").length
-	discard button.addEventListener("click", directDomListener)
 
-	let firstEvent = document.createEvent("Event")
-	discard firstEvent.initEvent("click", true, true)
-	discard button.dispatchEvent(firstEvent)
-
-	discard button.removeEventListener("click", directDomListener)
-	let secondEvent = document.createEvent("Event")
-	discard secondEvent.initEvent("click", true, true)
-	discard button.dispatchEvent(secondEvent)
-
-	return "{root.outerHTML}|{missingCount}"
+	return "{root.outerHTML}|{selectedId}|{missingCount}"
 }
 
 pub fn main() -> Unit uses JavaScript, Console {
