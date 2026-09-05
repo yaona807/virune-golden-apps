@@ -5,7 +5,6 @@ const client = axios.create({
 });
 const uri = client.getUri({
 	url: '/users',
-	params: { page: 2 },
 });
 const response = await client.get('data:text/plain,safe', {
 	responseType: 'text',

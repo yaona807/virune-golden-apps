@@ -29,7 +29,7 @@ function runScript(script) {
 	return run.stdout.split(/\r?\n/u).filter(Boolean);
 }
 
-const expected = 'ecosystem:axios:http://example.com/api/users?page=2:200';
+const expected = 'ecosystem:axios:http://example.com/api/users:200';
 runScript('reference');
 const referenceModule = await import(pathToFileURL(resolve('.reference-dist/reference.js')).href);
 const referenceResult = referenceModule.result;
@@ -40,4 +40,17 @@ const viruneResult = viruneLines.find(line => line.startsWith('ecosystem:axios:'
 assert.equal(viruneResult, expected, `unexpected Virune result: ${JSON.stringify(viruneLines)}`);
 assert.equal(viruneResult, referenceResult, 'Virune and TypeScript observable results diverged');
 
-process.stdout.write('PASS Axios ecosystem differential: create defaults -> getUri params -> await get -> status.\n');
+const paramsAny = spawnSync(npm, ['run', '--silent', 'check', '--', 'negative'], {
+	cwd: process.cwd(),
+	encoding: 'utf8',
+});
+assert.equal(
+	paramsAny.status,
+	1,
+	`native params object unexpectedly crossed Axios generic P=any\nstdout:\n${paramsAny.stdout}\nstderr:\n${paramsAny.stderr}`,
+);
+const paramsDiagnostics = `${paramsAny.stdout}\n${paramsAny.stderr}`;
+assert.match(paramsDiagnostics, /error\[L4204\]/u);
+assert.match(paramsDiagnostics, /Cannot resolve JavaScript call/u);
+
+process.stdout.write('PASS Axios ecosystem differential: observable create defaults, await get/status, and params-any fail-closed.\n');

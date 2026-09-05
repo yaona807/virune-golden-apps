@@ -1,0 +1,12 @@
+import js axios from "axios"
+
+pub fn main() -> Unit uses JavaScript {
+	let client = axios.create({
+		baseURL: "http://example.com/api",
+	})
+	discard client.getUri({
+		url: "/users",
+		params: { page: 2 },
+	})
+	return Unit
+}

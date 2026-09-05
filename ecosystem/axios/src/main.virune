@@ -6,7 +6,6 @@ pub async fn runAxiosEcosystem() -> String uses JavaScript {
 	})
 	let uri = client.getUri({
 		url: "/users",
-		params: { page: 2 },
 	})
 	let response = await client.get("data:text/plain,safe", {
 		responseType: "text",
