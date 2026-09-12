@@ -1,0 +1,74 @@
+import js { createSignal } from "solid-js"
+
+fn itemsFor(mode: Int) -> List<String> {
+	if mode == 0 {
+		return ["alpha", "beta"]
+	}
+	if mode == 1 {
+		return ["alpha", "beta", "gamma"]
+	}
+	if mode == 2 {
+		return ["zero", "alpha", "beta", "gamma"]
+	}
+	if mode == 3 {
+		return ["zero", "alpha", "gamma"]
+	}
+	return ["gamma", "zero", "alpha"]
+}
+
+internal component Row(label: String) uses JavaScript {
+	let state = createSignal(0)
+	let count = state[0]
+	let setCount = state[1]
+	return view {
+		button(class: "row", "data-label": label, onClick: fn() -> Unit uses JavaScript {
+			discard setCount(count() + 1)
+			return Unit
+		}) {
+			{ label }
+			":"
+			{ count() }
+		}
+	}
+}
+
+internal component App() uses JavaScript {
+	let state = createSignal(0)
+	let mode = state[0]
+	let setMode = state[1]
+	return view {
+		main(class: "solid-page") {
+			button(id: "append", onClick: fn() -> Unit uses JavaScript {
+				discard setMode(1)
+				return Unit
+			}) {
+				"append"
+			}
+			button(id: "prepend", onClick: fn() -> Unit uses JavaScript {
+				discard setMode(2)
+				return Unit
+			}) {
+				"prepend"
+			}
+			button(id: "delete", onClick: fn() -> Unit uses JavaScript {
+				discard setMode(3)
+				return Unit
+			}) {
+				"delete"
+			}
+			button(id: "reorder", onClick: fn() -> Unit uses JavaScript {
+				discard setMode(4)
+				return Unit
+			}) {
+				"reorder"
+			}
+			ul(id: "items") {
+				for item, index in itemsFor(mode()) {
+					li("data-index": index, "data-item": item) {
+						Row(label: item)
+					}
+				}
+			}
+		}
+	}
+}
