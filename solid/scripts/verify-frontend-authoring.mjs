@@ -32,6 +32,8 @@ await rm(transformed, { force: true });
 await rm(transformedMap, { force: true });
 const solidTransform = await transformAsync(emittedCode, {
 	filename: emitted,
+	babelrc: false,
+	configFile: false,
 	presets: [[solidPreset, { generate: 'dom', hydratable: false }]],
 	sourceMaps: true,
 	inputSourceMap: sourceMap,
