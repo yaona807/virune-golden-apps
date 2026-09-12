@@ -20,7 +20,7 @@ const emittedCode = await readFile(emitted, 'utf8');
 const sourceMap = JSON.parse(await readFile(emittedMap, 'utf8'));
 assert.match(emittedCode, /export function App\(\$props\)/u);
 assert.match(emittedCode, /export function Row\(\$props\)/u);
-assert.match(emittedCode, /itemsFor\(mode\(\)\)/u);
+assert.match(emittedCode, /itemsFor\([^;\n]*mode\(\)[^;\n]*\)/u);
 assert.match(emittedCode, /<main class=\{"solid-page"\}>/u);
 assert.doesNotMatch(emittedCode, /className/u);
 assert.match(emittedCode, /onClick=\{\$viruneProjectCallable\(/u);
