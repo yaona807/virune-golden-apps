@@ -1,0 +1,26 @@
+{
+  "name": "virune-react-frontend-golden",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "check:frontend-authoring": "virune check frontend-authoring",
+    "build:frontend-authoring": "virune build frontend-authoring",
+    "golden:frontend-authoring": "node scripts/verify-frontend-authoring.mjs"
+  },
+  "dependencies": {
+    "jsdom": "30.0.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/jsdom": "30.0.0",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "esbuild": "0.28.2"
+  },
+  "license": "Apache-2.0"
+}
