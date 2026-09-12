@@ -52,7 +52,7 @@ await rm(browserBundle, { force: true });
 await rm(browserBundleMap, { force: true });
 const browserBuild = await build({
 	stdin: {
-		contents: `import { render } from 'solid-js/web';\nimport { App } from './app.solid.mjs';\nexport function mount(root) { return render(() => App({}), root); }\n`,
+		contents: `import { createComponent, render } from 'solid-js/web';\nimport { App } from './app.solid.mjs';\nexport function mount(root) { return render(() => createComponent(App, {}), root); }\n`,
 		resolveDir: dirname(transformed),
 		sourcefile: 'solid-golden-host.mjs',
 		loader: 'js',
