@@ -1,6 +1,8 @@
 import js { Suspense } from "preact/compat"
 import js { useEffect } from "preact/hooks"
 
+type Cleanup = fn() -> Unit uses Console
+
 fn handle() -> Bool {
 	return true
 }
@@ -10,7 +12,7 @@ fn cleanupEffect() -> Unit uses Console {
 	return Unit
 }
 
-fn installEffect() -> fn() -> Unit uses Console {
+fn installEffect() -> Cleanup uses Console {
 	Console.print("golden:effect")
 	return cleanupEffect
 }
@@ -62,6 +64,7 @@ internal component App(title: String, ready: Bool) uses JavaScript {
 						li("data-index": index) {
 							{ item }
 						}
+					}
 				}
 			}
 		}
