@@ -1,0 +1,36 @@
+name: Generate Solid lockfile
+
+on:
+  push:
+    branches:
+      - test/frontend-solid-reactivity
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: test/frontend-solid-reactivity
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Generate pinned lockfile
+        working-directory: solid
+        run: npm install --package-lock-only
+      - name: Commit lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add solid/package-lock.json
+          git diff --cached --quiet && exit 0
+          git commit -m "chore(frontend): generate Solid lockfile"
+          git push origin HEAD:test/frontend-solid-reactivity
