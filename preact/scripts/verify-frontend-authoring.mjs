@@ -6,6 +6,7 @@ import { build } from 'esbuild';
 import { JSDOM } from 'jsdom';
 import { h, render } from 'preact';
 import { Suspense } from 'preact/compat';
+import { act } from 'preact/test-utils';
 
 const projectRoot = resolve('frontend-authoring');
 const emitted = resolve(projectRoot, 'dist/app.jsx');
@@ -19,7 +20,12 @@ const emittedCode = await readFile(emitted, 'utf8');
 const sourceMap = JSON.parse(await readFile(emittedMap, 'utf8'));
 assert.match(emittedCode, /export function App\(\$props\)/u);
 assert.match(emittedCode, /export function Panel\(\$props\)/u);
+assert.match(emittedCode, /export function EffectProbe\(\$props\)/u);
 assert.match(emittedCode, /<button onClick=\{\$viruneProjectCallable\(handle,/u);
+assert.match(emittedCode, /useEffect\(\$viruneProjectCallable\(installEffect,/u);
+assert.match(emittedCode, /useEffect\(\$viruneProjectCallable\(installEffect,[^\n]*virune-callable-shim[^\n]*v3/u);
+assert.match(emittedCode, /return \$viruneProjectCallable\(\$result,/u);
+assert.doesNotMatch(emittedCode, /useEffect\(installEffect\)/u);
 assert.match(emittedCode, /<Suspense fallback=\{"Loading"\}>/u);
 assert.ok(emittedCode.endsWith('//# sourceMappingURL=app.jsx.map\n'));
 assert.equal(sourceMap.file, 'app.jsx');
@@ -44,12 +50,20 @@ const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></
 const root = dom.window.document.getElementById('root');
 assert.ok(root);
 
+const lifecycle = [];
+const originalConsoleLog = console.log;
+console.log = (...args) => {
+	if (args.length === 1 && (args[0] === 'golden:effect' || args[0] === 'golden:cleanup')) lifecycle.push(args[0]);
+	else originalConsoleLog(...args);
+};
+
 globalThis.window = dom.window;
 globalThis.document = dom.window.document;
 
 try {
 	const frontend = await import(pathToFileURL(transformed).href);
 	assert.equal(typeof frontend.App, 'function');
+	assert.equal(typeof frontend.EffectProbe, 'function');
 
 	const appVNode = frontend.App({ title: 'Jobs', ready: true });
 	assert.equal(appVNode.type, 'main');
@@ -62,11 +76,15 @@ try {
 	assert.ok(suspenseVNode);
 	assert.equal(suspenseVNode.props.fallback, 'Loading');
 
-	render(h(frontend.App, { title: 'Jobs', ready: true }), root);
+	await act(() => {
+		render(h(frontend.App, { title: 'Jobs', ready: true }), root);
+	});
+	assert.deepEqual(lifecycle, ['golden:effect']);
 	const main = root.querySelector('main.page');
 	assert.ok(main);
 	assert.equal(main.getAttribute('data-kind'), 'jobs');
 	assert.equal(main.querySelector('h1')?.textContent, 'Jobs');
+	assert.equal(main.querySelector('.effect-probe')?.textContent, 'effect');
 	assert.equal(main.querySelector('.suspense-content')?.textContent, 'Loaded');
 	assert.equal(main.querySelector('.status')?.textContent, 'ready');
 	assert.equal(main.querySelector('.panel h2')?.textContent, 'Queue');
@@ -74,11 +92,20 @@ try {
 	assert.deepEqual(items.map(item => item.textContent), ['compile', 'ship']);
 	assert.deepEqual(items.map(item => item.getAttribute('data-index')), ['0', '1']);
 
-	render(h(frontend.App, { title: 'Jobs', ready: false }), root);
+	await act(() => {
+		render(h(frontend.App, { title: 'Jobs', ready: false }), root);
+	});
+	assert.deepEqual(lifecycle, ['golden:effect', 'golden:cleanup', 'golden:effect']);
 	assert.equal(root.querySelector('.status'), null);
 	assert.deepEqual([...root.querySelectorAll('li')].map(item => item.textContent), ['compile', 'ship']);
+
+	await act(() => {
+		render(null, root);
+	});
+	assert.deepEqual(lifecycle, ['golden:effect', 'golden:cleanup', 'golden:effect', 'golden:cleanup']);
 } finally {
 	render(null, root);
+	console.log = originalConsoleLog;
 	dom.window.close();
 	delete globalThis.window;
 	delete globalThis.document;
