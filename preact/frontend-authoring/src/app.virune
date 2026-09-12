@@ -1,0 +1,35 @@
+internal component Panel(title: String) uses JavaScript {
+	return view {
+		section(class: "panel") {
+			h2() {
+				{ title }
+			}
+			children
+		}
+	}
+}
+
+internal component App(title: String, ready: Bool) uses JavaScript {
+	let items = ["compile", "ship"]
+	return view {
+		main(class: "page", "data-kind": "jobs") {
+			h1() {
+				{ title }
+			}
+			if ready {
+				p(class: "status") {
+					"ready"
+				}
+			}
+			Panel(title: "Queue") {
+				ul() {
+					for item, index in items {
+						li("data-index": index) {
+							{ item }
+						}
+					}
+				}
+			}
+		}
+	}
+}
