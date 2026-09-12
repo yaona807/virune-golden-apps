@@ -1,4 +1,4 @@
-import js { useEffect } from "react"
+import js * as React from "react"
 
 type Cleanup = fn() -> Unit uses Console
 
@@ -13,7 +13,7 @@ fn installEffect() -> Cleanup uses Console {
 }
 
 internal component EffectProbe() uses JavaScript, Console {
-	discard useEffect(installEffect)
+	discard React.useEffect(installEffect)
 	return view {
 		span(className: "effect-probe") {
 			"effect"
