@@ -23,6 +23,7 @@ assert.match(emittedCode, /export function Row\(\$props\)/u);
 assert.match(emittedCode, /itemsFor\([^;\n]*mode\(\)[^;\n]*\)/u);
 assert.match(emittedCode, /<main class=\{"solid-page"\}>/u);
 assert.doesNotMatch(emittedCode, /className/u);
+assert.doesNotMatch(emittedCode, /solid-js\/web/u);
 assert.match(emittedCode, /onClick=\{\$viruneProjectCallable\(/u);
 assert.ok(emittedCode.endsWith('//# sourceMappingURL=app.jsx.map\n'));
 assert.equal(sourceMap.file, 'app.jsx');
@@ -40,7 +41,9 @@ const solidTransform = await transformAsync(emittedCode, {
 });
 assert.ok(solidTransform?.code);
 assert.ok(solidTransform.map);
-assert.doesNotMatch(solidTransform.code, /<main[ >]/u);
+assert.match(solidTransform.code, /from "solid-js\/web"/u);
+assert.match(solidTransform.code, /_\$template\(/u);
+assert.match(solidTransform.code, /_\$createComponent\(/u);
 assert.ok(solidTransform.map.sources.some(source => source.endsWith('src/app.virune')));
 await writeFile(transformed, `${solidTransform.code}\n//# sourceMappingURL=${transformed.split('/').at(-1)}.map\n`);
 await writeFile(transformedMap, `${JSON.stringify(solidTransform.map)}\n`);
