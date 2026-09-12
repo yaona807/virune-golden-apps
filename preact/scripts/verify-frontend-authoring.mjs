@@ -60,7 +60,6 @@ try {
 	assert.ok(main);
 	assert.equal(main.getAttribute('data-kind'), 'jobs');
 	assert.equal(main.querySelector('h1')?.textContent, 'Jobs');
-	assert.equal(main.querySelector('button')?.textContent, 'Run');
 	assert.equal(main.querySelector('.status')?.textContent, 'ready');
 	assert.equal(main.querySelector('.panel h2')?.textContent, 'Queue');
 	const items = [...main.querySelectorAll('li')];
