@@ -1,0 +1,38 @@
+import js * as React from "react"
+
+type Cleanup = fn() -> Unit uses Console
+
+fn cleanupEffect() -> Unit uses Console {
+	Console.print("golden:react:cleanup")
+	return Unit
+}
+
+fn installEffect() -> Cleanup uses Console {
+	Console.print("golden:react:effect")
+	return cleanupEffect
+}
+
+internal component EffectProbe() uses JavaScript, Console {
+	discard React.useEffect(installEffect)
+	return view {
+		span(className: "effect-probe") {
+			"effect"
+		}
+	}
+}
+
+internal component App(title: String, ready: Bool) uses JavaScript {
+	return view {
+		main(className: "page", "data-kind": "react") {
+			h1() {
+				{ title }
+			}
+			EffectProbe()
+			if ready {
+				p(className: "status") {
+					"ready"
+				}
+			}
+		}
+	}
+}
