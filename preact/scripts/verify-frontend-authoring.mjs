@@ -16,6 +16,7 @@ const emittedCode = await readFile(emitted, 'utf8');
 const sourceMap = JSON.parse(await readFile(emittedMap, 'utf8'));
 assert.match(emittedCode, /export function App\(\$props\)/u);
 assert.match(emittedCode, /export function Panel\(\$props\)/u);
+assert.match(emittedCode, /<button onClick=\{\$viruneProjectCallable\(handle,/u);
 assert.ok(emittedCode.endsWith('//# sourceMappingURL=app.jsx.map\n'));
 assert.equal(sourceMap.file, 'app.jsx');
 assert.ok(sourceMap.sources.some(source => source.endsWith('src/app.virune')));
@@ -45,6 +46,14 @@ globalThis.document = dom.window.document;
 try {
 	const frontend = await import(pathToFileURL(transformed).href);
 	assert.equal(typeof frontend.App, 'function');
+
+	const appVNode = frontend.App({ title: 'Jobs', ready: true });
+	assert.equal(appVNode.type, 'main');
+	const appChildren = Array.isArray(appVNode.props.children) ? appVNode.props.children : [appVNode.props.children];
+	const buttonVNode = appChildren.find(child => child && typeof child === 'object' && child.type === 'button');
+	assert.ok(buttonVNode);
+	assert.equal(typeof buttonVNode.props.onClick, 'function');
+	assert.equal(buttonVNode.props.onClick(), true);
 
 	render(h(frontend.App, { title: 'Jobs', ready: true }), root);
 	const main = root.querySelector('main.page');
