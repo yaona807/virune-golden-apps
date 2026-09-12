@@ -1,3 +1,7 @@
+fn handle() -> Bool {
+	return true
+}
+
 internal component Panel(title: String) uses JavaScript {
 	return view {
 		section(class: "panel") {
@@ -15,6 +19,9 @@ internal component App(title: String, ready: Bool) uses JavaScript {
 		main(class: "page", "data-kind": "jobs") {
 			h1() {
 				{ title }
+			}
+			button(onClick: handle) {
+				"Run"
 			}
 			if ready {
 				p(class: "status") {
