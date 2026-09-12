@@ -23,7 +23,7 @@ assert.match(emittedCode, /export function Panel\(\$props\)/u);
 assert.match(emittedCode, /export function EffectProbe\(\$props\)/u);
 assert.match(emittedCode, /<button onClick=\{\$viruneProjectCallable\(handle,/u);
 assert.match(emittedCode, /useEffect\(\$viruneProjectCallable\(installEffect,/u);
-assert.match(emittedCode, /version: 'virune-callable-shim\/v3'/u);
+assert.match(emittedCode, /useEffect\(\$viruneProjectCallable\(installEffect,[^\n]*virune-callable-shim[^\n]*v3/u);
 assert.match(emittedCode, /return \$viruneProjectCallable\(\$result,/u);
 assert.doesNotMatch(emittedCode, /useEffect\(installEffect\)/u);
 assert.match(emittedCode, /<Suspense fallback=\{"Loading"\}>/u);
