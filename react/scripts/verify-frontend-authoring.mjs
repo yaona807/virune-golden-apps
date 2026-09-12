@@ -47,6 +47,7 @@ assert.ok(rootElement);
 
 const lifecycle = [];
 const originalConsoleLog = console.log;
+const originalNavigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
 console.log = (...args) => {
 	if (args.length === 1 && (args[0] === 'golden:react:effect' || args[0] === 'golden:react:cleanup')) lifecycle.push(args[0]);
 	else originalConsoleLog(...args);
@@ -54,7 +55,10 @@ console.log = (...args) => {
 
 globalThis.window = dom.window;
 globalThis.document = dom.window.document;
-globalThis.navigator = dom.window.navigator;
+Object.defineProperty(globalThis, 'navigator', {
+	configurable: true,
+	value: dom.window.navigator,
+});
 globalThis.Node = dom.window.Node;
 globalThis.HTMLElement = dom.window.HTMLElement;
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -103,7 +107,8 @@ try {
 	delete globalThis.IS_REACT_ACT_ENVIRONMENT;
 	delete globalThis.HTMLElement;
 	delete globalThis.Node;
-	delete globalThis.navigator;
+	if (originalNavigatorDescriptor === undefined) delete globalThis.navigator;
+	else Object.defineProperty(globalThis, 'navigator', originalNavigatorDescriptor);
 	delete globalThis.document;
 	delete globalThis.window;
 }
