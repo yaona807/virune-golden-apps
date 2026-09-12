@@ -1,0 +1,37 @@
+name: Frontend authoring lock bootstrap
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  pin-esbuild:
+    if: github.head_ref == 'test/frontend-authoring-preact-jsx'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Pin esbuild and refresh lockfile
+        working-directory: preact
+        run: npm install --save-dev --save-exact esbuild@0.28.2
+      - name: Commit lockfile update when needed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add preact/package.json preact/package-lock.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(frontend): pin preserved JSX transformer'
+          git push origin HEAD:${{ github.head_ref }}
