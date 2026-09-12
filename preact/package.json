@@ -10,7 +10,10 @@
     "check": "virune check",
     "build": "virune build",
     "start": "virune run",
-    "golden": "node scripts/verify-preact.mjs"
+    "golden": "node scripts/verify-preact.mjs",
+    "check:frontend-authoring": "virune check frontend-authoring",
+    "build:frontend-authoring": "virune build frontend-authoring",
+    "golden:frontend-authoring": "node scripts/verify-frontend-authoring.mjs"
   },
   "dependencies": {
     "jsdom": "30.0.1",
