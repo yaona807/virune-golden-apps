@@ -1,3 +1,5 @@
+import js { Suspense } from "preact/compat"
+
 fn handle() -> Bool {
 	return true
 }
@@ -22,6 +24,11 @@ internal component App(title: String, ready: Bool) uses JavaScript {
 			}
 			button(onClick: handle) {
 				"Run"
+			}
+			Suspense(fallback: "Loading") {
+				p(class: "suspense-content") {
+					"Loaded"
+				}
 			}
 			if ready {
 				p(class: "status") {
