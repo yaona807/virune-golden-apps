@@ -1,0 +1,74 @@
+import js { createSignal } from "solid-js"
+
+fn itemsFor(mode: String) -> List<String> {
+	if mode == "base" {
+		return ["alpha", "beta"]
+	}
+	if mode == "append" {
+		return ["alpha", "beta", "gamma"]
+	}
+	if mode == "prepend" {
+		return ["zero", "alpha", "beta", "gamma"]
+	}
+	if mode == "delete" {
+		return ["zero", "alpha", "gamma"]
+	}
+	return ["gamma", "zero", "alpha"]
+}
+
+internal component Row(label: String) uses JavaScript {
+	let state = createSignal("cold")
+	let mark = state[0]
+	let setMark = state[1]
+	return view {
+		button(class: "row", "data-label": label, onClick: fn() -> Unit uses JavaScript {
+			discard setMark("hot")
+			return Unit
+		}) {
+			{ label }
+			":"
+			{ mark() }
+		}
+	}
+}
+
+internal component App() uses JavaScript {
+	let state = createSignal("base")
+	let mode = state[0]
+	let setMode = state[1]
+	return view {
+		main(class: "solid-page") {
+			button(id: "append", onClick: fn() -> Unit uses JavaScript {
+				discard setMode("append")
+				return Unit
+			}) {
+				"append"
+			}
+			button(id: "prepend", onClick: fn() -> Unit uses JavaScript {
+				discard setMode("prepend")
+				return Unit
+			}) {
+				"prepend"
+			}
+			button(id: "delete", onClick: fn() -> Unit uses JavaScript {
+				discard setMode("delete")
+				return Unit
+			}) {
+				"delete"
+			}
+			button(id: "reorder", onClick: fn() -> Unit uses JavaScript {
+				discard setMode("reorder")
+				return Unit
+			}) {
+				"reorder"
+			}
+			ul(id: "items") {
+				for item, index in itemsFor(mode()) {
+					li("data-index": index, "data-item": item) {
+						Row(label: item)
+					}
+				}
+			}
+		}
+	}
+}
