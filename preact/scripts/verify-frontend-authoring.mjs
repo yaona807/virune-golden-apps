@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
 import { JSDOM } from 'jsdom';
 import { h, render } from 'preact';
+import { Suspense } from 'preact/compat';
 
 const projectRoot = resolve('frontend-authoring');
 const emitted = resolve(projectRoot, 'dist/app.jsx');
@@ -17,6 +18,7 @@ const sourceMap = JSON.parse(await readFile(emittedMap, 'utf8'));
 assert.match(emittedCode, /export function App\(\$props\)/u);
 assert.match(emittedCode, /export function Panel\(\$props\)/u);
 assert.match(emittedCode, /<button onClick=\{\$viruneProjectCallable\(handle,/u);
+assert.match(emittedCode, /<Suspense fallback=\{"Loading"\}>/u);
 assert.ok(emittedCode.endsWith('//# sourceMappingURL=app.jsx.map\n'));
 assert.equal(sourceMap.file, 'app.jsx');
 assert.ok(sourceMap.sources.some(source => source.endsWith('src/app.virune')));
@@ -54,12 +56,16 @@ try {
 	assert.ok(buttonVNode);
 	assert.equal(typeof buttonVNode.props.onClick, 'function');
 	assert.equal(buttonVNode.props.onClick(), true);
+	const suspenseVNode = appChildren.find(child => child && typeof child === 'object' && child.type === Suspense);
+	assert.ok(suspenseVNode);
+	assert.equal(suspenseVNode.props.fallback, 'Loading');
 
 	render(h(frontend.App, { title: 'Jobs', ready: true }), root);
 	const main = root.querySelector('main.page');
 	assert.ok(main);
 	assert.equal(main.getAttribute('data-kind'), 'jobs');
 	assert.equal(main.querySelector('h1')?.textContent, 'Jobs');
+	assert.equal(main.querySelector('.suspense-content')?.textContent, 'Loaded');
 	assert.equal(main.querySelector('.status')?.textContent, 'ready');
 	assert.equal(main.querySelector('.panel h2')?.textContent, 'Queue');
 	const items = [...main.querySelectorAll('li')];
