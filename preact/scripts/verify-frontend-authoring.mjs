@@ -12,6 +12,8 @@ const emitted = resolve(projectRoot, 'dist/app.jsx');
 const emittedMap = `${emitted}.map`;
 const transformed = resolve(projectRoot, 'dist/app.transformed.mjs');
 const transformedMap = `${transformed}.map`;
+const browserBundle = resolve(projectRoot, 'dist/app.browser.min.mjs');
+const browserBundleMap = `${browserBundle}.map`;
 
 const emittedCode = await readFile(emitted, 'utf8');
 const sourceMap = JSON.parse(await readFile(emittedMap, 'utf8'));
@@ -80,6 +82,34 @@ try {
 	dom.window.close();
 	delete globalThis.window;
 	delete globalThis.document;
+}
+
+await rm(browserBundle, { force: true });
+await rm(browserBundleMap, { force: true });
+const browserBuild = await build({
+	entryPoints: [emitted],
+	outfile: browserBundle,
+	bundle: true,
+	format: 'esm',
+	platform: 'browser',
+	target: 'es2022',
+	jsx: 'automatic',
+	jsxImportSource: 'preact',
+	sourcemap: 'external',
+	minify: true,
+	metafile: true,
+	logLevel: 'silent',
+});
+
+const browserCode = await readFile(browserBundle, 'utf8');
+const browserSourceMap = JSON.parse(await readFile(browserBundleMap, 'utf8'));
+assert.ok(browserCode.length > 0);
+assert.ok(browserSourceMap.sources.some(source => source.endsWith('src/app.virune')));
+for (const output of Object.values(browserBuild.metafile.outputs)) {
+	assert.equal(
+		output.imports.some(entry => entry.external && (entry.path === 'preact' || entry.path.startsWith('preact/'))),
+		false,
+	);
 }
 
 console.log('golden:frontend-authoring:ok');
