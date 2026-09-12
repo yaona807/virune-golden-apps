@@ -1,7 +1,27 @@
 import js { Suspense } from "preact/compat"
+import js { useEffect } from "preact/hooks"
 
 fn handle() -> Bool {
 	return true
+}
+
+fn cleanupEffect() -> Unit uses Console {
+	Console.print("golden:cleanup")
+	return Unit
+}
+
+fn installEffect() -> fn() -> Unit uses Console {
+	Console.print("golden:effect")
+	return cleanupEffect
+}
+
+internal component EffectProbe() uses JavaScript, Console {
+	discard useEffect(installEffect)
+	return view {
+		span(class: "effect-probe") {
+			"effect"
+		}
+	}
 }
 
 internal component Panel(title: String) uses JavaScript {
@@ -25,6 +45,7 @@ internal component App(title: String, ready: Bool) uses JavaScript {
 			button(onClick: handle) {
 				"Run"
 			}
+			EffectProbe()
 			Suspense(fallback: "Loading") {
 				p(class: "suspense-content") {
 					"Loaded"
@@ -41,7 +62,6 @@ internal component App(title: String, ready: Bool) uses JavaScript {
 						li("data-index": index) {
 							{ item }
 						}
-					}
 				}
 			}
 		}
