@@ -1,25 +1,13 @@
 {
-  "name": "virune-solid-frontend-golden",
+  "name": "virune-solid-repetition-host-prototype",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "engines": {
     "node": ">=24.0.0"
   },
-  "scripts": {
-    "check:frontend-authoring": "virune check frontend-authoring",
-    "build:frontend-authoring": "virune build frontend-authoring",
-    "golden:frontend-authoring": "node scripts/verify-frontend-authoring.mjs"
-  },
   "dependencies": {
-    "jsdom": "30.0.1",
     "solid-js": "1.9.15"
-  },
-  "devDependencies": {
-    "@babel/core": "7.29.7",
-    "@types/jsdom": "30.0.0",
-    "babel-preset-solid": "1.9.15",
-    "esbuild": "0.28.2"
   },
   "license": "Apache-2.0"
 }
