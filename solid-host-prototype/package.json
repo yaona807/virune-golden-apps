@@ -1,0 +1,13 @@
+{
+  "name": "virune-solid-repetition-host-prototype",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "dependencies": {
+    "solid-js": "1.9.15"
+  },
+  "license": "Apache-2.0"
+}
