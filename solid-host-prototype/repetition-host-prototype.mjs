@@ -44,6 +44,21 @@ function makeSnapshot(entries) {
   }));
 }
 
+function makeNestedSnapshot(entries) {
+  return entries.map(([id, label, children], index) => ({
+    id,
+    index,
+    value: {
+      label,
+      children: children.map(([childId, childLabel], childIndex) => ({
+        id: childId,
+        index: childIndex,
+        value: { label: childLabel },
+      })),
+    },
+  }));
+}
+
 function assertGroupState(groups, expected) {
   assert.deepEqual(
     groups().map((group) => ({
@@ -189,5 +204,78 @@ assert.throws(() => {
     }
   });
 }, /duplicate repetition identity: s:5:alpha/);
+
+// Nested repetition must compose without introducing a second identity model.
+// Reordering both levels preserves child state; removing a parent disposes its
+// nested groups exactly once through Solid's ordinary owner hierarchy.
+const nestedLifecycle = [];
+let disposeNestedRoot;
+createRoot((dispose) => {
+  disposeNestedRoot = dispose;
+  const [snapshot, setSnapshot] = createSignal(makeNestedSnapshot([
+    ['s:5:alpha', 'alpha', [
+      ['s:9:alpha-one', 'alpha-one'],
+      ['s:9:alpha-two', 'alpha-two'],
+    ]],
+    ['s:4:beta', 'beta', [
+      ['s:8:beta-one', 'beta-one'],
+    ]],
+  ]));
+
+  const groups = createRepetitionHost(snapshot, (value, index, id) => {
+    nestedLifecycle.push(`outer-create:${id}`);
+    onCleanup(() => nestedLifecycle.push(`outer-dispose:${id}`));
+    const children = createRepetitionHost(
+      createMemo(() => value().children),
+      (childValue, childIndex, childId) => {
+        nestedLifecycle.push(`child-create:${id}/${childId}`);
+        const [mark, setMark] = createSignal('cold');
+        onCleanup(() => nestedLifecycle.push(`child-dispose:${id}/${childId}`));
+        return { id: childId, value: childValue, index: childIndex, mark, setMark };
+      },
+    );
+    return { id, value, index, children };
+  });
+
+  const alpha = groups().find((group) => group.id === 's:5:alpha');
+  assert.ok(alpha);
+  const alphaOne = alpha.children().find((group) => group.id === 's:9:alpha-one');
+  assert.ok(alphaOne);
+  alphaOne.setMark('hot');
+
+  setSnapshot(makeNestedSnapshot([
+    ['s:4:beta', 'beta-v2', [
+      ['s:8:beta-one', 'beta-one-v2'],
+    ]],
+    ['s:5:alpha', 'alpha-v2', [
+      ['s:9:alpha-two', 'alpha-two-v2'],
+      ['s:9:alpha-one', 'alpha-one-v2'],
+    ]],
+  ]));
+
+  const movedAlpha = groups().find((group) => group.id === 's:5:alpha');
+  assert.strictEqual(movedAlpha, alpha);
+  assert.equal(alpha.index(), 1);
+  assert.equal(alpha.value().label, 'alpha-v2');
+  const movedAlphaOne = alpha.children().find((group) => group.id === 's:9:alpha-one');
+  assert.strictEqual(movedAlphaOne, alphaOne);
+  assert.equal(alphaOne.index(), 1);
+  assert.equal(alphaOne.value().label, 'alpha-one-v2');
+  assert.equal(alphaOne.mark(), 'hot');
+
+  setSnapshot(makeNestedSnapshot([
+    ['s:4:beta', 'beta-v3', [
+      ['s:8:beta-one', 'beta-one-v3'],
+    ]],
+  ]));
+  assert.equal(nestedLifecycle.filter((event) => event === 'outer-dispose:s:5:alpha').length, 1);
+  assert.equal(nestedLifecycle.filter((event) => event === 'child-dispose:s:5:alpha/s:9:alpha-one').length, 1);
+  assert.equal(nestedLifecycle.filter((event) => event === 'child-dispose:s:5:alpha/s:9:alpha-two').length, 1);
+});
+
+assert.ok(disposeNestedRoot);
+disposeNestedRoot();
+assert.equal(nestedLifecycle.filter((event) => event === 'outer-dispose:s:4:beta').length, 1);
+assert.equal(nestedLifecycle.filter((event) => event === 'child-dispose:s:4:beta/s:8:beta-one').length, 1);
 
 console.log('Solid repetition host prototype: PASS');
