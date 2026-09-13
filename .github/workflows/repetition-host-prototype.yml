@@ -27,9 +27,12 @@ jobs:
       - name: Verify checkout identity
         shell: bash
         run: test "$(git rev-parse HEAD)" = "${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
-      - name: Install pinned prototype dependencies
+      - name: Regenerate narrowed lockfile for prototype review
         working-directory: solid-host-prototype
-        run: npm ci
+        run: |
+          npm install --package-lock-only --ignore-scripts
+          cat package-lock.json
+          npm ci --ignore-scripts
       - name: Run Solid repetition host prototype against browser runtime
         working-directory: solid-host-prototype
         run: node --conditions=browser repetition-host-prototype.mjs
