@@ -268,6 +268,7 @@ createRoot((dispose) => {
       ['s:8:beta-one', 'beta-one-v3'],
     ]],
   ]));
+  assert.deepEqual(groups().map((group) => group.id), ['s:4:beta']);
   assert.equal(nestedLifecycle.filter((event) => event === 'outer-dispose:s:5:alpha').length, 1);
   assert.equal(nestedLifecycle.filter((event) => event === 'child-dispose:s:5:alpha/s:9:alpha-one').length, 1);
   assert.equal(nestedLifecycle.filter((event) => event === 'child-dispose:s:5:alpha/s:9:alpha-two').length, 1);
