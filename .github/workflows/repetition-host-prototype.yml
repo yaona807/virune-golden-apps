@@ -1,0 +1,35 @@
+name: Repetition Host Prototype
+
+on:
+  pull_request:
+    paths:
+      - 'solid-host-prototype/**'
+      - '.github/workflows/repetition-host-prototype.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  solid-host:
+    name: Solid identity-group host / Ubuntu 24.04 / Node 24
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify checkout identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
+      - name: Install pinned prototype dependencies
+        working-directory: solid-host-prototype
+        run: npm ci
+      - name: Run Solid repetition host prototype
+        working-directory: solid-host-prototype
+        run: node repetition-host-prototype.mjs
