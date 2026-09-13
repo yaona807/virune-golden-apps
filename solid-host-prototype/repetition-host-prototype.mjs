@@ -238,9 +238,13 @@ createRoot((dispose) => {
   });
 
   const alpha = groups().find((group) => group.id === 's:5:alpha');
+  const beta = groups().find((group) => group.id === 's:4:beta');
   assert.ok(alpha);
+  assert.ok(beta);
   const alphaOne = alpha.children().find((group) => group.id === 's:9:alpha-one');
+  const betaOne = beta.children().find((group) => group.id === 's:8:beta-one');
   assert.ok(alphaOne);
+  assert.ok(betaOne);
   alphaOne.setMark('hot');
 
   setSnapshot(makeNestedSnapshot([
@@ -254,14 +258,19 @@ createRoot((dispose) => {
   ]));
 
   const movedAlpha = groups().find((group) => group.id === 's:5:alpha');
+  const movedBeta = groups().find((group) => group.id === 's:4:beta');
   assert.strictEqual(movedAlpha, alpha);
+  assert.strictEqual(movedBeta, beta);
   assert.equal(alpha.index(), 1);
   assert.equal(alpha.value().label, 'alpha-v2');
   const movedAlphaOne = alpha.children().find((group) => group.id === 's:9:alpha-one');
+  const movedBetaOne = beta.children().find((group) => group.id === 's:8:beta-one');
   assert.strictEqual(movedAlphaOne, alphaOne);
+  assert.strictEqual(movedBetaOne, betaOne);
   assert.equal(alphaOne.index(), 1);
   assert.equal(alphaOne.value().label, 'alpha-one-v2');
   assert.equal(alphaOne.mark(), 'hot');
+  assert.equal(betaOne.value().label, 'beta-one-v2');
 
   setSnapshot(makeNestedSnapshot([
     ['s:4:beta', 'beta-v3', [
