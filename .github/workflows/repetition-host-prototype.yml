@@ -30,6 +30,6 @@ jobs:
       - name: Install pinned prototype dependencies
         working-directory: solid-host-prototype
         run: npm ci
-      - name: Run Solid repetition host prototype
+      - name: Run Solid repetition host prototype against browser runtime
         working-directory: solid-host-prototype
-        run: node repetition-host-prototype.mjs
+        run: node --conditions=browser repetition-host-prototype.mjs
