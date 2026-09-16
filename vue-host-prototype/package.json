@@ -1,0 +1,13 @@
+{
+  "name": "virune-vue-repetition-host-prototype",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "dependencies": {
+    "vue": "3.5.42"
+  },
+  "license": "Apache-2.0"
+}
