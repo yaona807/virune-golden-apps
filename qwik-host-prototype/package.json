@@ -1,0 +1,13 @@
+{
+  "name": "virune-qwik-repetition-host-prototype",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "dependencies": {
+    "@builder.io/qwik": "1.20.0"
+  },
+  "license": "Apache-2.0"
+}
