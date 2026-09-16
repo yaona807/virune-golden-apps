@@ -3,6 +3,7 @@ import { JSDOM } from 'jsdom';
 import {
   act,
   createElement,
+  Fragment,
   useCallback,
   useEffect,
   useRef,
@@ -77,7 +78,10 @@ function StatefulRow({ value, index, id, lifecyclePrefix = '' }) {
 
 function renderStatefulGroup(value, index, id) {
   renderCalls.set(id, (renderCalls.get(id) ?? 0) + 1);
-  return createElement(StatefulRow, { value, index, id });
+  return createElement(Fragment, null,
+    createElement(StatefulRow, { value, index, id }),
+    createElement('span', { 'data-meta-id': id }, `meta:${id}`),
+  );
 }
 
 function BasicScenario({ snapshot }) {
@@ -125,6 +129,13 @@ function assertOrder(root, expected) {
   );
 }
 
+function assertGroupedSiblingOrder(root, expected) {
+  assert.deepEqual(
+    [...root.querySelectorAll('span[data-meta-id]')].map((node) => node.getAttribute('data-meta-id')),
+    expected,
+  );
+}
+
 // Duplicate identity must fail before the host creates any keyed group elements.
 assert.throws(() => RepetitionHost({
   snapshot: makeSnapshot([
@@ -168,6 +179,7 @@ try {
     root.render(createElement(BasicScenario, { snapshot }));
   });
   assertOrder(rootElement, ['s:5:alpha', 's:4:beta']);
+  assertGroupedSiblingOrder(rootElement, ['s:5:alpha', 's:4:beta']);
   assert.equal(rowText(rootElement, 's:5:alpha'), 'alpha:0:cold');
   assert.equal(rowText(rootElement, 's:4:beta'), 'beta:1:cold');
   assert.deepEqual(lifecycle, ['mount:s:5:alpha', 'mount:s:4:beta']);
@@ -187,10 +199,12 @@ try {
     root.render(createElement(BasicScenario, { snapshot }));
   });
   assertOrder(rootElement, ['s:5:alpha', 's:4:beta', 's:5:gamma']);
+  assertGroupedSiblingOrder(rootElement, ['s:5:alpha', 's:4:beta', 's:5:gamma']);
   assert.equal(rowText(rootElement, 's:5:alpha'), 'alpha:0:hot');
   assert.equal(lifecycle.filter((event) => event === 'mount:s:5:alpha').length, 1);
 
-  // Prepend. State follows logical id while index reflects the current snapshot.
+  // Prepend. State and both sibling children move as one logical identity group,
+  // while index() reflects the current snapshot.
   snapshot = makeSnapshot([
     ['s:4:zero', 'zero'],
     ['s:5:alpha', 'alpha'],
@@ -201,6 +215,7 @@ try {
     root.render(createElement(BasicScenario, { snapshot }));
   });
   assertOrder(rootElement, ['s:4:zero', 's:5:alpha', 's:4:beta', 's:5:gamma']);
+  assertGroupedSiblingOrder(rootElement, ['s:4:zero', 's:5:alpha', 's:4:beta', 's:5:gamma']);
   assert.equal(rowText(rootElement, 's:5:alpha'), 'alpha:1:hot');
 
   // Delete beta. Only beta is disposed; alpha remains mounted and hot.
@@ -226,6 +241,7 @@ try {
     root.render(createElement(BasicScenario, { snapshot }));
   });
   assertOrder(rootElement, ['s:5:gamma', 's:4:zero', 's:5:alpha']);
+  assertGroupedSiblingOrder(rootElement, ['s:5:gamma', 's:4:zero', 's:5:alpha']);
   assert.equal(rowText(rootElement, 's:5:alpha'), 'alpha:2:hot');
 
   // Same identity + changed value updates without replacing local state.
@@ -252,10 +268,10 @@ try {
   assert.equal(lifecycle.filter((event) => event === 'dispose:s:5:alpha').length, 1);
   assert.equal(rowText(rootElement, 's:5:delta'), 'delta:2:cold');
 
-  // React re-invokes the host-deferred body on normal renders while preserving
-  // child component identity through the keyed group boundary. This is deliberate
-  // architecture evidence: callback invocation count is not a cross-framework
-  // lifecycle invariant even though observable logical-group state is preserved.
+  // This React implementation re-invokes the host-deferred body on normal renders
+  // while preserving child component identity through the keyed group boundary.
+  // Current evidence therefore must not treat callback invocation count as a proven
+  // cross-framework lifecycle invariant.
   assert.ok((renderCalls.get('s:5:alpha') ?? 0) > 1);
   assert.equal(lifecycle.filter((event) => event === 'mount:s:5:alpha').length, 1);
 
@@ -312,6 +328,8 @@ try {
   for (const id of ['s:5:gamma', 's:4:zero', 's:5:delta']) {
     assert.equal(lifecycle.filter((event) => event === `dispose:${id}`).length, 1);
   }
+  assert.equal(lifecycle.filter((event) => event === 'dispose:s:4:beta').length, 1);
+  assert.equal(lifecycle.filter((event) => event === 'dispose:s:5:alpha').length, 1);
 
   await act(async () => {
     nestedRoot.unmount();
