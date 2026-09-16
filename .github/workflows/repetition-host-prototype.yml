@@ -10,6 +10,7 @@ on:
       - 'preact/scripts/repetition-host-prototype.mjs'
       - 'preact/package.json'
       - 'preact/package-lock.json'
+      - 'vue-host-prototype/**'
       - '.github/workflows/repetition-host-prototype.yml'
   workflow_dispatch:
 
@@ -85,3 +86,26 @@ jobs:
       - name: Run Preact repetition host prototype against browser runtime
         working-directory: preact
         run: node scripts/repetition-host-prototype.mjs
+
+  vue-host:
+    name: Vue identity-group host / Ubuntu 24.04 / Node 24
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify checkout identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
+      - name: Install pinned Vue prototype dependencies
+        working-directory: vue-host-prototype
+        run: npm ci --ignore-scripts
+      - name: Run Vue repetition host prototype against Vue renderer
+        working-directory: vue-host-prototype
+        run: node repetition-host-prototype.mjs
