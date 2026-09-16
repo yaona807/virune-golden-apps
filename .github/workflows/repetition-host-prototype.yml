@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - 'solid-host-prototype/**'
+      - 'react/scripts/repetition-host-prototype.mjs'
+      - 'react/package.json'
+      - 'react/package-lock.json'
       - '.github/workflows/repetition-host-prototype.yml'
   workflow_dispatch:
 
@@ -33,3 +36,26 @@ jobs:
       - name: Run Solid repetition host prototype against browser runtime
         working-directory: solid-host-prototype
         run: node --conditions=browser repetition-host-prototype.mjs
+
+  react-host:
+    name: React identity-group host / Ubuntu 24.04 / Node 24
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify checkout identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
+      - name: Install pinned React consumer dependencies
+        working-directory: react
+        run: npm ci --ignore-scripts
+      - name: Run React repetition host prototype against browser runtime
+        working-directory: react
+        run: node scripts/repetition-host-prototype.mjs
