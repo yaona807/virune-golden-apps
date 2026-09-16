@@ -7,6 +7,9 @@ on:
       - 'react/scripts/repetition-host-prototype.mjs'
       - 'react/package.json'
       - 'react/package-lock.json'
+      - 'preact/scripts/repetition-host-prototype.mjs'
+      - 'preact/package.json'
+      - 'preact/package-lock.json'
       - '.github/workflows/repetition-host-prototype.yml'
   workflow_dispatch:
 
@@ -58,4 +61,27 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Run React repetition host prototype against browser runtime
         working-directory: react
+        run: node scripts/repetition-host-prototype.mjs
+
+  preact-host:
+    name: Preact identity-group host / Ubuntu 24.04 / Node 24
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify checkout identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
+      - name: Install pinned Preact consumer dependencies
+        working-directory: preact
+        run: npm ci --ignore-scripts
+      - name: Run Preact repetition host prototype against browser runtime
+        working-directory: preact
         run: node scripts/repetition-host-prototype.mjs
