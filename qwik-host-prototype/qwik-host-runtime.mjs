@@ -61,6 +61,15 @@ export function statefulRowRender(props) {
 
 export const StatefulRow = componentQrl(qrl(moduleUrl, 'statefulRowRender'));
 
+export function plainRowRender(props) {
+  return jsx('button', {
+    'data-id': props.registryId,
+    children: `${props.label}:${props.index}:plain`,
+  });
+}
+
+export const PlainRow = componentQrl(qrl(moduleUrl, 'plainRowRender'));
+
 function renderStatefulGroup(value, index, id) {
   return [
     jsx(StatefulRow, {
@@ -85,13 +94,8 @@ function renderNestedGroup(value, index, id) {
       }),
       repetitionHost(value.children, (childValue, childIndex, childId) => {
         const registryId = `${id}/${childId}`;
-        if (childId.endsWith('-two')) {
-          return jsx('button', {
-            'data-id': registryId,
-            children: `${childValue.label}:${childIndex}:plain`,
-          });
-        }
-        return jsx(StatefulRow, {
+        const Row = childId.endsWith('-two') ? PlainRow : StatefulRow;
+        return jsx(Row, {
           registryId,
           label: childValue.label,
           index: childIndex,
