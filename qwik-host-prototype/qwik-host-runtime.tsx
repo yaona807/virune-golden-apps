@@ -49,20 +49,17 @@ export const PrototypeRoot = component$((props) => {
 
   const groups = props.mode === 'nested'
     ? repetitionHost(snapshot.value, (value, index, id) => (
-        <Fragment key={id}>
-          <section data-outer-id={id}>
-            <span data-outer-label={id}>{value.label}:{index}</span>
-            {repetitionHost(value.children, (childValue, childIndex, childId) => (
-              <Fragment key={childId}>
-                <StatefulRow
-                  registryId={`${id}/${childId}`}
-                  value={childValue}
-                  index={childIndex}
-                />
-              </Fragment>
-            ))}
-          </section>
-        </Fragment>
+        <section key={id} data-outer-id={id}>
+          <span data-outer-label={id}>{value.label}:{index}</span>
+          {repetitionHost(value.children, (childValue, childIndex, childId) => (
+            <StatefulRow
+              key={childId}
+              registryId={`${id}/${childId}`}
+              value={childValue}
+              index={childIndex}
+            />
+          ))}
+        </section>
       ))
     : repetitionHost(snapshot.value, (value, index, id) => (
         <Fragment key={id}>
