@@ -63,8 +63,8 @@ function assertGroupState(groups, expected) {
   assert.deepEqual(
     groups().map((group) => ({
       id: group.id,
-      label: group.value().label,
-      index: group.index(),
+      label: group.label(),
+      index: group.currentIndex(),
       mark: group.mark(),
     })),
     expected,
@@ -82,11 +82,17 @@ createRoot((dispose) => {
     ['s:4:beta', 'beta'],
   ]));
 
-  const groups = repetitionHost(snapshot, (value, index, id) => {
+  const groups = repetitionHost(snapshot, (readValue, readIndex, id) => {
     lifecycle.push(`create:${id}`);
     const [mark, setMark] = createSignal('cold');
     onCleanup(() => lifecycle.push(`dispose:${id}`));
-    return { id, value, index, mark, setMark };
+    return {
+      id,
+      label: () => readValue().label,
+      currentIndex: () => readIndex(),
+      mark,
+      setMark,
+    };
   });
 
   assertGroupState(groups, [
@@ -115,7 +121,7 @@ createRoot((dispose) => {
     { id: 's:5:gamma', label: 'gamma', index: 2, mark: 'cold' },
   ]);
 
-  // Prepend: state follows identity, while index() tracks the current snapshot.
+  // Prepend: state follows identity, while the body-derived index tracks the current snapshot.
   setSnapshot(makeSnapshot([
     ['s:4:zero', 'zero'],
     ['s:5:alpha', 'alpha'],
@@ -159,14 +165,14 @@ createRoot((dispose) => {
     { id: 's:5:alpha', label: 'alpha', index: 2, mark: 'hot' },
   ]);
 
-  // Same identity + changed value updates value() without recreating the group.
+  // Same identity + changed value updates the body-derived value without recreating the group.
   setSnapshot(makeSnapshot([
     ['s:5:gamma', 'gamma'],
     ['s:4:zero', 'zero'],
     ['s:5:alpha', 'alpha-v2'],
   ]));
   assert.strictEqual(groups()[2], alpha);
-  assert.equal(alpha.value().label, 'alpha-v2');
+  assert.equal(alpha.label(), 'alpha-v2');
   assert.equal(alpha.mark(), 'hot');
 
   // Identity transition A -> B is remove + add. State must not transfer.
@@ -196,7 +202,11 @@ assert.throws(() => {
       ['s:5:alpha', 'alpha'],
       ['s:5:alpha', 'alpha-copy'],
     ]));
-    const groups = repetitionHost(snapshot, (value, index, id) => ({ id, value, index }));
+    const groups = repetitionHost(snapshot, (readValue, readIndex, id) => ({
+      id,
+      label: () => readValue().label,
+      currentIndex: () => readIndex(),
+    }));
     try {
       groups();
     } finally {
@@ -222,19 +232,30 @@ createRoot((dispose) => {
     ]],
   ]));
 
-  const groups = repetitionHost(snapshot, (value, index, id) => {
+  const groups = repetitionHost(snapshot, (readValue, readIndex, id) => {
     nestedLifecycle.push(`outer-create:${id}`);
     onCleanup(() => nestedLifecycle.push(`outer-dispose:${id}`));
     const children = repetitionHost(
-      createMemo(() => value().children),
-      (childValue, childIndex, childId) => {
+      createMemo(() => readValue().children),
+      (readChildValue, readChildIndex, childId) => {
         nestedLifecycle.push(`child-create:${id}/${childId}`);
         const [mark, setMark] = createSignal('cold');
         onCleanup(() => nestedLifecycle.push(`child-dispose:${id}/${childId}`));
-        return { id: childId, value: childValue, index: childIndex, mark, setMark };
+        return {
+          id: childId,
+          label: () => readChildValue().label,
+          currentIndex: () => readChildIndex(),
+          mark,
+          setMark,
+        };
       },
     );
-    return { id, value, index, children };
+    return {
+      id,
+      label: () => readValue().label,
+      currentIndex: () => readIndex(),
+      children,
+    };
   });
 
   const alpha = groups().find((group) => group.id === 's:5:alpha');
@@ -261,16 +282,16 @@ createRoot((dispose) => {
   const movedBeta = groups().find((group) => group.id === 's:4:beta');
   assert.strictEqual(movedAlpha, alpha);
   assert.strictEqual(movedBeta, beta);
-  assert.equal(alpha.index(), 1);
-  assert.equal(alpha.value().label, 'alpha-v2');
+  assert.equal(alpha.currentIndex(), 1);
+  assert.equal(alpha.label(), 'alpha-v2');
   const movedAlphaOne = alpha.children().find((group) => group.id === 's:9:alpha-one');
   const movedBetaOne = beta.children().find((group) => group.id === 's:8:beta-one');
   assert.strictEqual(movedAlphaOne, alphaOne);
   assert.strictEqual(movedBetaOne, betaOne);
-  assert.equal(alphaOne.index(), 1);
-  assert.equal(alphaOne.value().label, 'alpha-one-v2');
+  assert.equal(alphaOne.currentIndex(), 1);
+  assert.equal(alphaOne.label(), 'alpha-one-v2');
   assert.equal(alphaOne.mark(), 'hot');
-  assert.equal(betaOne.value().label, 'beta-one-v2');
+  assert.equal(betaOne.label(), 'beta-one-v2');
 
   setSnapshot(makeNestedSnapshot([
     ['s:4:beta', 'beta-v3', [
