@@ -4,7 +4,7 @@ import {
   jsx,
   qrl,
   useSignal,
-  useTaskQrl,
+  useVisibleTaskQrl,
 } from '@builder.io/qwik';
 
 const moduleUrl = import.meta.url;
@@ -49,7 +49,7 @@ export function statefulRowRender(props) {
   const mark = useSignal('cold');
   rowSignals.set(props.registryId, mark);
   rowRenderCounts.set(props.registryId, (rowRenderCounts.get(props.registryId) ?? 0) + 1);
-  useTaskQrl(qrl(moduleUrl, 'rowCleanupTask'));
+  useVisibleTaskQrl(qrl(moduleUrl, 'rowCleanupTask'), { strategy: 'document-ready' });
 
   return jsx('button', {
     'data-id': props.registryId,
