@@ -10,6 +10,10 @@ import {
   rowSignals,
 } from './qwik-host-runtime.mjs';
 
+function diagnostic(phase) {
+  console.log(`Qwik diagnostic: ${phase}`);
+}
+
 function makeSnapshot(entries) {
   return entries.map(([id, label], index) => ({
     id,
@@ -91,8 +95,10 @@ async function cleanupRender(result, screen, userEvent) {
   );
   assert.equal(bodyCalls, 0);
 }
+diagnostic('duplicate validation complete');
 
 const flatDOM = await createDOM();
+diagnostic('flat createDOM complete');
 const flatInitial = makeSnapshot([
   ['s:5:alpha', 'alpha'],
   ['s:4:beta', 'beta'],
@@ -102,7 +108,9 @@ const flatRender = await flatDOM.render(jsx(PrototypeRoot, {
   mode: 'flat',
   initialSnapshot: flatInitial,
 }));
+diagnostic('flat initial render complete');
 await flushScheduledRender(flatDOM.screen, flatDOM.userEvent);
+diagnostic('flat initial flush complete');
 
 assertOrder(flatDOM.screen, 'data-id', ['s:5:alpha', 's:4:beta']);
 assertOrder(flatDOM.screen, 'data-meta-id', ['s:5:alpha', 's:4:beta']);
@@ -115,6 +123,7 @@ const betaState = rowSignals.get('s:4:beta');
 assert.ok(alphaState);
 assert.ok(betaState);
 await flatDOM.userEvent(byAttr(flatDOM.screen, 'data-id', 's:5:alpha'), 'click');
+diagnostic('flat state click complete');
 assert.equal(alphaState.value, 'hot');
 assertRow(flatDOM.screen, 's:5:alpha', 'alpha:0:hot');
 
@@ -126,6 +135,7 @@ const appended = makeSnapshot([
 ]);
 assert.notStrictEqual(appended[0].value, flatInitial[0].value);
 await replaceSnapshot('flat', appended, flatDOM.screen, flatDOM.userEvent);
+diagnostic('append complete');
 assertOrder(flatDOM.screen, 'data-id', ['s:5:alpha', 's:4:beta', 's:5:gamma']);
 assertOrder(flatDOM.screen, 'data-meta-id', ['s:5:alpha', 's:4:beta', 's:5:gamma']);
 assert.strictEqual(rowSignals.get('s:5:alpha'), alphaState);
@@ -145,6 +155,7 @@ const prepended = makeSnapshot([
 ]);
 assert.notStrictEqual(prepended[1].value, appended[0].value);
 await replaceSnapshot('flat', prepended, flatDOM.screen, flatDOM.userEvent);
+diagnostic('prepend complete');
 assertOrder(flatDOM.screen, 'data-id', ['s:4:zero', 's:5:alpha', 's:4:beta', 's:5:gamma']);
 assertOrder(flatDOM.screen, 'data-meta-id', ['s:4:zero', 's:5:alpha', 's:4:beta', 's:5:gamma']);
 assert.strictEqual(rowSignals.get('s:5:alpha'), alphaState);
@@ -161,6 +172,7 @@ const withoutBeta = makeSnapshot([
   ['s:5:gamma', 'gamma'],
 ]);
 await replaceSnapshot('flat', withoutBeta, flatDOM.screen, flatDOM.userEvent);
+diagnostic('delete complete');
 assert.equal(maybeByAttr(flatDOM.screen, 'data-id', 's:4:beta'), undefined);
 assert.equal(maybeByAttr(flatDOM.screen, 'data-meta-id', 's:4:beta'), undefined);
 assert.strictEqual(rowSignals.get('s:5:alpha'), alphaState);
@@ -175,6 +187,7 @@ const reordered = makeSnapshot([
   ['s:4:zero', 'zero'],
 ]);
 await replaceSnapshot('flat', reordered, flatDOM.screen, flatDOM.userEvent);
+diagnostic('reorder complete');
 assertOrder(flatDOM.screen, 'data-id', ['s:5:gamma', 's:5:alpha', 's:4:zero']);
 assertOrder(flatDOM.screen, 'data-meta-id', ['s:5:gamma', 's:5:alpha', 's:4:zero']);
 assert.strictEqual(rowSignals.get('s:5:gamma'), gammaState);
@@ -191,6 +204,7 @@ const valueUpdated = makeSnapshot([
 ]);
 assert.notStrictEqual(valueUpdated[1].value, reordered[1].value);
 await replaceSnapshot('flat', valueUpdated, flatDOM.screen, flatDOM.userEvent);
+diagnostic('same-id update complete');
 assert.strictEqual(rowSignals.get('s:5:alpha'), alphaState);
 assertRow(flatDOM.screen, 's:5:alpha', 'alpha-v2:1:hot');
 assertRow(flatDOM.screen, 's:5:gamma', 'gamma-v2:0:cold');
@@ -203,6 +217,7 @@ const replacedIdentity = makeSnapshot([
   ['s:4:zero', 'zero-v3'],
 ]);
 await replaceSnapshot('flat', replacedIdentity, flatDOM.screen, flatDOM.userEvent);
+diagnostic('identity replacement complete');
 assert.equal(maybeByAttr(flatDOM.screen, 'data-id', 's:5:alpha'), undefined);
 assert.equal(maybeByAttr(flatDOM.screen, 'data-meta-id', 's:5:alpha'), undefined);
 assertOrder(flatDOM.screen, 'data-id', ['s:5:gamma', 's:5:delta', 's:4:zero']);
@@ -216,12 +231,14 @@ assert.equal(cleanupEvents.length, 2);
 assert.equal(new Set(cleanupEvents).size, cleanupEvents.length);
 
 await cleanupRender(flatRender, flatDOM.screen, flatDOM.userEvent);
+diagnostic('flat cleanup complete');
 // beta + alpha were removed during updates; gamma + delta + zero are current at root cleanup.
 assert.equal(cleanupEvents.length, 5);
 assert.equal(new Set(cleanupEvents).size, cleanupEvents.length);
 
 // Nested repetition composes the same opaque-id Host contract at both levels.
 const nestedDOM = await createDOM();
+diagnostic('nested createDOM complete');
 const nestedInitial = makeNestedSnapshot([
   ['s:5:alpha', 'alpha', [
     ['s:9:alpha-one', 'alpha-one'],
@@ -236,7 +253,9 @@ const nestedRender = await nestedDOM.render(jsx(PrototypeRoot, {
   mode: 'nested',
   initialSnapshot: nestedInitial,
 }));
+diagnostic('nested initial render complete');
 await flushScheduledRender(nestedDOM.screen, nestedDOM.userEvent);
+diagnostic('nested initial flush complete');
 assertOrder(nestedDOM.screen, 'data-outer-id', ['s:5:alpha', 's:4:beta']);
 assertRow(nestedDOM.screen, 's:5:alpha/s:9:alpha-one', 'alpha-one:0:cold');
 
@@ -248,6 +267,7 @@ await nestedDOM.userEvent(
   byAttr(nestedDOM.screen, 'data-id', 's:5:alpha/s:9:alpha-one'),
   'click',
 );
+diagnostic('nested state click complete');
 assert.equal(alphaOneState.value, 'hot');
 assertRow(nestedDOM.screen, 's:5:alpha/s:9:alpha-one', 'alpha-one:0:hot');
 
@@ -265,6 +285,7 @@ assert.notStrictEqual(
   nestedInitial[0].value.children[0].value,
 );
 await replaceSnapshot('nested', nestedReordered, nestedDOM.screen, nestedDOM.userEvent);
+diagnostic('nested reorder complete');
 assertOrder(nestedDOM.screen, 'data-outer-id', ['s:4:beta', 's:5:alpha']);
 assert.strictEqual(rowSignals.get('s:5:alpha/s:9:alpha-one'), alphaOneState);
 assert.strictEqual(rowSignals.get('s:4:beta/s:8:beta-one'), betaOneState);
@@ -278,6 +299,7 @@ const nestedWithoutAlpha = makeNestedSnapshot([
   ]],
 ]);
 await replaceSnapshot('nested', nestedWithoutAlpha, nestedDOM.screen, nestedDOM.userEvent);
+diagnostic('nested delete complete');
 assert.equal(maybeByAttr(nestedDOM.screen, 'data-outer-id', 's:5:alpha'), undefined);
 assert.strictEqual(rowSignals.get('s:4:beta/s:8:beta-one'), betaOneState);
 assertRow(nestedDOM.screen, 's:4:beta/s:8:beta-one', 'beta-one-v3:0:cold');
@@ -285,6 +307,7 @@ assert.equal(cleanupEvents.length, 7);
 assert.equal(new Set(cleanupEvents).size, cleanupEvents.length);
 
 await cleanupRender(nestedRender, nestedDOM.screen, nestedDOM.userEvent);
+diagnostic('nested cleanup complete');
 assert.equal(cleanupEvents.length, 8);
 assert.equal(new Set(cleanupEvents).size, cleanupEvents.length);
 
