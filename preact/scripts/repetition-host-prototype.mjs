@@ -250,6 +250,9 @@ try {
   assert.equal(lifecycle.filter((event) => event === 'dispose:s:5:alpha').length, 1);
   assert.equal(rowText(rootElement, 's:5:delta'), 'delta:2:cold');
 
+  // Like React, Preact may re-run the host-deferred body while keyed descendant state is
+  // preserved. Callback invocation count is observed but is not a portable Host
+  // lifecycle invariant.
   assert.ok((renderCalls.get('s:5:alpha') ?? 0) > 1);
   assert.equal(lifecycle.filter((event) => event === 'mount:s:5:alpha').length, 1);
 
