@@ -10,8 +10,8 @@ function validateSnapshot(snapshot) {
   return snapshot;
 }
 
-function createRepetitionHost(snapshot, renderGroup) {
-  const validatedSnapshot = createMemo(() => validateSnapshot(snapshot()));
+function repetitionHost(readSnapshot, renderGroup) {
+  const validatedSnapshot = createMemo(() => validateSnapshot(readSnapshot()));
   const entriesById = createMemo(() => new Map(validatedSnapshot().map((entry) => [entry.id, entry])));
   const orderedIds = createMemo(() => validatedSnapshot().map((entry) => entry.id));
 
@@ -82,7 +82,7 @@ createRoot((dispose) => {
     ['s:4:beta', 'beta'],
   ]));
 
-  const groups = createRepetitionHost(snapshot, (value, index, id) => {
+  const groups = repetitionHost(snapshot, (value, index, id) => {
     lifecycle.push(`create:${id}`);
     const [mark, setMark] = createSignal('cold');
     onCleanup(() => lifecycle.push(`dispose:${id}`));
@@ -196,7 +196,7 @@ assert.throws(() => {
       ['s:5:alpha', 'alpha'],
       ['s:5:alpha', 'alpha-copy'],
     ]));
-    const groups = createRepetitionHost(snapshot, (value, index, id) => ({ id, value, index }));
+    const groups = repetitionHost(snapshot, (value, index, id) => ({ id, value, index }));
     try {
       groups();
     } finally {
@@ -222,10 +222,10 @@ createRoot((dispose) => {
     ]],
   ]));
 
-  const groups = createRepetitionHost(snapshot, (value, index, id) => {
+  const groups = repetitionHost(snapshot, (value, index, id) => {
     nestedLifecycle.push(`outer-create:${id}`);
     onCleanup(() => nestedLifecycle.push(`outer-dispose:${id}`));
-    const children = createRepetitionHost(
+    const children = repetitionHost(
       createMemo(() => value().children),
       (childValue, childIndex, childId) => {
         nestedLifecycle.push(`child-create:${id}/${childId}`);
