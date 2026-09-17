@@ -9,7 +9,7 @@ import {
 
 const moduleUrl = import.meta.url;
 const cleanupTaskQrl = qrl(moduleUrl, 'rowCleanupTask');
-const noopTaskQrl = qrl(moduleUrl, 'noopTask');
+const emptyCleanupTaskQrl = qrl(moduleUrl, 'emptyCleanupTask');
 const markHotQrl = qrl(moduleUrl, 'markHot');
 
 export const rootSignals = new Map();
@@ -40,7 +40,9 @@ export function rowCleanupTask({ cleanup }) {
   cleanup(() => cleanupEvents.push(token));
 }
 
-export function noopTask() {}
+export function emptyCleanupTask({ cleanup }) {
+  cleanup(() => {});
+}
 
 export function markHot(_event, element) {
   const identity = element.getAttribute('data-id');
@@ -65,7 +67,7 @@ export function statefulRowRender(props) {
 export const StatefulRow = componentQrl(qrl(moduleUrl, 'statefulRowRender'));
 
 export function taskOnlyRowRender(props) {
-  useTaskQrl(noopTaskQrl);
+  useTaskQrl(emptyCleanupTaskQrl);
   return jsx('button', {
     'data-id': props.registryId,
     children: `${props.label}:${props.index}:task-only`,
