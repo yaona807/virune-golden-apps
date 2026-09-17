@@ -9,6 +9,7 @@ import {
 
 const moduleUrl = import.meta.url;
 const cleanupTaskQrl = qrl(moduleUrl, 'rowCleanupTask');
+const noopTaskQrl = qrl(moduleUrl, 'noopTask');
 const markHotQrl = qrl(moduleUrl, 'markHot');
 
 export const rootSignals = new Map();
@@ -39,6 +40,8 @@ export function rowCleanupTask({ cleanup }) {
   cleanup(() => cleanupEvents.push(token));
 }
 
+export function noopTask() {}
+
 export function markHot(_event, element) {
   const identity = element.getAttribute('data-id');
   const signal = rowSignals.get(identity);
@@ -61,14 +64,15 @@ export function statefulRowRender(props) {
 
 export const StatefulRow = componentQrl(qrl(moduleUrl, 'statefulRowRender'));
 
-export function plainRowRender(props) {
+export function taskOnlyRowRender(props) {
+  useTaskQrl(noopTaskQrl);
   return jsx('button', {
     'data-id': props.registryId,
-    children: `${props.label}:${props.index}:plain`,
+    children: `${props.label}:${props.index}:task-only`,
   });
 }
 
-export const PlainRow = componentQrl(qrl(moduleUrl, 'plainRowRender'));
+export const TaskOnlyRow = componentQrl(qrl(moduleUrl, 'taskOnlyRowRender'));
 
 function renderStatefulGroup(value, index, id) {
   return [
@@ -94,7 +98,7 @@ function renderNestedGroup(value, index, id) {
       }),
       repetitionHost(value.children, (childValue, childIndex, childId) => {
         const registryId = `${id}/${childId}`;
-        const Row = childId.endsWith('-two') ? PlainRow : StatefulRow;
+        const Row = childId.endsWith('-two') ? TaskOnlyRow : StatefulRow;
         return jsx(Row, {
           registryId,
           label: childValue.label,
