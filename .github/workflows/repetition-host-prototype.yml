@@ -5,11 +5,9 @@ on:
     paths:
       - 'solid-host-prototype/**'
       - 'react/scripts/repetition-host-prototype.mjs'
-      - 'react/scripts/repetition-host-call-protocol.mjs'
       - 'react/package.json'
       - 'react/package-lock.json'
       - 'preact/scripts/repetition-host-prototype.mjs'
-      - 'preact/scripts/repetition-host-call-protocol.mjs'
       - 'preact/package.json'
       - 'preact/package-lock.json'
       - 'vue-host-prototype/**'
@@ -43,9 +41,6 @@ jobs:
       - name: Run Solid repetition host prototype against browser runtime
         working-directory: solid-host-prototype
         run: node --conditions=browser repetition-host-prototype.mjs
-      - name: Run Solid repetition Host call protocol probe
-        working-directory: solid-host-prototype
-        run: node --conditions=browser repetition-host-call-protocol.mjs
 
   react-host:
     name: React identity-group host / Ubuntu 24.04 / Node 24
@@ -69,9 +64,6 @@ jobs:
       - name: Run React repetition host prototype against browser runtime
         working-directory: react
         run: node scripts/repetition-host-prototype.mjs
-      - name: Run React repetition Host call protocol probe
-        working-directory: react
-        run: node scripts/repetition-host-call-protocol.mjs
 
   preact-host:
     name: Preact identity-group host / Ubuntu 24.04 / Node 24
@@ -95,9 +87,6 @@ jobs:
       - name: Run Preact repetition host prototype against browser runtime
         working-directory: preact
         run: node scripts/repetition-host-prototype.mjs
-      - name: Run Preact repetition Host call protocol probe
-        working-directory: preact
-        run: node scripts/repetition-host-call-protocol.mjs
 
   vue-host:
     name: Vue identity-group host / Ubuntu 24.04 / Node 24
@@ -121,9 +110,6 @@ jobs:
       - name: Run Vue repetition host prototype against Vue renderer
         working-directory: vue-host-prototype
         run: node repetition-host-prototype.mjs
-      - name: Run Vue repetition Host call protocol probe
-        working-directory: vue-host-prototype
-        run: node repetition-host-call-protocol.mjs
 
   qwik-host:
     name: Qwik identity-group host / Ubuntu 24.04 / Node 24
@@ -147,6 +133,3 @@ jobs:
       - name: Run Qwik repetition host prototype against Qwik renderer
         working-directory: qwik-host-prototype
         run: node --conditions=development repetition-host-prototype.mjs
-      - name: Run Qwik repetition Host call protocol probe
-        working-directory: qwik-host-prototype
-        run: node --conditions=development repetition-host-call-protocol.mjs
