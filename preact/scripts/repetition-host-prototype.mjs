@@ -21,12 +21,16 @@ function RepetitionGroup({ entry, renderGroup }) {
   return renderGroup(value, index, entry.id);
 }
 
-function RepetitionHost({ snapshot, renderGroup }) {
-  return validateSnapshot(snapshot).map((entry) => h(RepetitionGroup, {
+function RepetitionHostImpl({ readSnapshot, renderGroup }) {
+  return validateSnapshot(readSnapshot()).map((entry) => h(RepetitionGroup, {
     key: entry.id,
     entry,
     renderGroup,
   }));
+}
+
+function repetitionHost(readSnapshot, renderGroup) {
+  return h(RepetitionHostImpl, { readSnapshot, renderGroup });
 }
 
 function makeSnapshot(entries) {
@@ -79,29 +83,29 @@ function renderStatefulGroup(value, index, id) {
 }
 
 function BasicScenario({ snapshot }) {
-  return h(RepetitionHost, { snapshot, renderGroup: renderStatefulGroup });
+  return repetitionHost(() => snapshot, renderStatefulGroup);
 }
 
 function NestedOuter({ value, index, id }) {
   return h('section', { 'data-outer-id': id },
     h('span', { 'data-outer-label': id }, `${value().label}:${index()}`),
-    h(RepetitionHost, {
-      snapshot: value().children,
-      renderGroup: (childValue, childIndex, childId) => h(StatefulRow, {
+    repetitionHost(
+      () => value().children,
+      (childValue, childIndex, childId) => h(StatefulRow, {
         value: childValue,
         index: childIndex,
         id: childId,
         lifecyclePrefix: `${id}/`,
       }),
-    }),
+    ),
   );
 }
 
 function NestedScenario({ snapshot }) {
-  return h(RepetitionHost, {
-    snapshot,
-    renderGroup: (value, index, id) => h(NestedOuter, { value, index, id }),
-  });
+  return repetitionHost(
+    () => snapshot,
+    (value, index, id) => h(NestedOuter, { value, index, id }),
+  );
 }
 
 function rowText(root, id) {
@@ -130,8 +134,8 @@ function assertGroupedSiblingOrder(root, expected) {
   );
 }
 
-assert.throws(() => RepetitionHost({
-  snapshot: makeSnapshot([
+assert.throws(() => RepetitionHostImpl({
+  readSnapshot: () => makeSnapshot([
     ['s:5:alpha', 'alpha'],
     ['s:5:alpha', 'alpha-copy'],
   ]),
