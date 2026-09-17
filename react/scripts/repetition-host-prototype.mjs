@@ -22,9 +22,9 @@ function validateSnapshot(snapshot) {
 function RepetitionGroup({ entry, renderGroup }) {
   const currentEntry = useRef(entry);
   currentEntry.current = entry;
-  const value = useCallback(() => currentEntry.current.value, []);
-  const index = useCallback(() => currentEntry.current.index, []);
-  return renderGroup(value, index, entry.id);
+  const readValue = useCallback(() => currentEntry.current.value, []);
+  const readIndex = useCallback(() => currentEntry.current.index, []);
+  return renderGroup(readValue, readIndex, entry.id);
 }
 
 function RepetitionHostImpl({ readSnapshot, renderGroup }) {
@@ -77,13 +77,13 @@ function StatefulRow({ value, index, id, lifecyclePrefix = '' }) {
     type: 'button',
     'data-id': `${lifecyclePrefix}${id}`,
     onClick: () => setMark('hot'),
-  }, `${value().label}:${index()}:${mark}`);
+  }, `${value.label}:${index}:${mark}`);
 }
 
-function renderStatefulGroup(value, index, id) {
+function renderStatefulGroup(readValue, readIndex, id) {
   renderCalls.set(id, (renderCalls.get(id) ?? 0) + 1);
   return createElement(Fragment, null,
-    createElement(StatefulRow, { value, index, id }),
+    createElement(StatefulRow, { value: readValue(), index: readIndex(), id }),
     createElement('span', { 'data-meta-id': id }, `meta:${id}`),
   );
 }
@@ -94,12 +94,12 @@ function BasicScenario({ snapshot }) {
 
 function NestedOuter({ value, index, id }) {
   return createElement('section', { 'data-outer-id': id },
-    createElement('span', { 'data-outer-label': id }, `${value().label}:${index()}`),
+    createElement('span', { 'data-outer-label': id }, `${value.label}:${index}`),
     repetitionHost(
-      () => value().children,
-      (childValue, childIndex, childId) => createElement(StatefulRow, {
-        value: childValue,
-        index: childIndex,
+      () => value.children,
+      (readChildValue, readChildIndex, childId) => createElement(StatefulRow, {
+        value: readChildValue(),
+        index: readChildIndex(),
         id: childId,
         lifecyclePrefix: `${id}/`,
       }),
@@ -110,7 +110,11 @@ function NestedOuter({ value, index, id }) {
 function NestedScenario({ snapshot }) {
   return repetitionHost(
     () => snapshot,
-    (value, index, id) => createElement(NestedOuter, { value, index, id }),
+    (readValue, readIndex, id) => createElement(NestedOuter, {
+      value: readValue(),
+      index: readIndex(),
+      id,
+    }),
   );
 }
 
@@ -193,7 +197,6 @@ try {
   });
   assert.equal(rowText(rootElement, 's:5:alpha'), 'alpha:0:hot');
 
-  // Append. Alpha/Beta are reconciled by opaque id even though value objects are new.
   snapshot = makeSnapshot([
     ['s:5:alpha', 'alpha'],
     ['s:4:beta', 'beta'],
@@ -207,8 +210,6 @@ try {
   assert.equal(rowText(rootElement, 's:5:alpha'), 'alpha:0:hot');
   assert.equal(lifecycle.filter((event) => event === 'mount:s:5:alpha').length, 1);
 
-  // Prepend. State and both sibling children move as one logical identity group,
-  // while index() reflects the current snapshot.
   snapshot = makeSnapshot([
     ['s:4:zero', 'zero'],
     ['s:5:alpha', 'alpha'],
@@ -222,7 +223,6 @@ try {
   assertGroupedSiblingOrder(rootElement, ['s:4:zero', 's:5:alpha', 's:4:beta', 's:5:gamma']);
   assert.equal(rowText(rootElement, 's:5:alpha'), 'alpha:1:hot');
 
-  // Delete beta. Only beta is disposed; alpha remains mounted and hot.
   snapshot = makeSnapshot([
     ['s:4:zero', 'zero'],
     ['s:5:alpha', 'alpha'],
@@ -235,7 +235,6 @@ try {
   assert.equal(lifecycle.filter((event) => event === 'dispose:s:5:alpha').length, 0);
   assert.equal(rowText(rootElement, 's:5:alpha'), 'alpha:1:hot');
 
-  // Reorder surviving groups. State remains attached to id and index updates.
   snapshot = makeSnapshot([
     ['s:5:gamma', 'gamma'],
     ['s:4:zero', 'zero'],
@@ -248,7 +247,6 @@ try {
   assertGroupedSiblingOrder(rootElement, ['s:5:gamma', 's:4:zero', 's:5:alpha']);
   assert.equal(rowText(rootElement, 's:5:alpha'), 'alpha:2:hot');
 
-  // Same identity + changed value updates without replacing local state.
   snapshot = makeSnapshot([
     ['s:5:gamma', 'gamma'],
     ['s:4:zero', 'zero'],
@@ -260,7 +258,6 @@ try {
   assert.equal(rowText(rootElement, 's:5:alpha'), 'alpha-v2:2:hot');
   assert.equal(lifecycle.filter((event) => event === 'mount:s:5:alpha').length, 1);
 
-  // Identity transition alpha -> delta is remove + add. State must not transfer.
   snapshot = makeSnapshot([
     ['s:5:gamma', 'gamma'],
     ['s:4:zero', 'zero'],
@@ -272,10 +269,6 @@ try {
   assert.equal(lifecycle.filter((event) => event === 'dispose:s:5:alpha').length, 1);
   assert.equal(rowText(rootElement, 's:5:delta'), 'delta:2:cold');
 
-  // This React implementation re-invokes the host-deferred body on normal renders
-  // while preserving child component identity through the keyed group boundary.
-  // Current evidence therefore must not treat callback invocation count as a proven
-  // cross-framework lifecycle invariant.
   assert.ok((renderCalls.get('s:5:alpha') ?? 0) > 1);
   assert.equal(lifecycle.filter((event) => event === 'mount:s:5:alpha').length, 1);
 
