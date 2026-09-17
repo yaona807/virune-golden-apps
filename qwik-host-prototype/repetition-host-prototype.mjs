@@ -110,7 +110,7 @@ try {
   // Duplicate identities fail before the render callback can produce keyed output.
   let bodyCalls = 0;
   assert.throws(
-    () => runtime.repetitionHost([
+    () => runtime.repetitionHost(() => [
       { id: 's:5:alpha', index: 0, value: { label: 'alpha' } },
       { id: 's:5:alpha', index: 1, value: { label: 'alpha-copy' } },
     ], () => {
