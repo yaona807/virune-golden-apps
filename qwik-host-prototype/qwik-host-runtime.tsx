@@ -1,4 +1,4 @@
-import { Fragment, component$, useSignal, useTask$ } from '@builder.io/qwik';
+import { Fragment, component$, jsx, useSignal, useTask$ } from '@builder.io/qwik';
 
 export const rootSignals = new Map();
 export const rowSignals = new Map();
@@ -18,6 +18,25 @@ export function validateSnapshot(snapshot) {
 export function repetitionHost(snapshot, renderGroup) {
   validateSnapshot(snapshot);
   return snapshot.map((entry) => renderGroup(entry.value, entry.index, entry.id));
+}
+
+function keyProtocolGroup(id, group) {
+  if (group !== null && typeof group === 'object' && !Array.isArray(group) && 'type' in group && 'props' in group) {
+    return jsx(group.type, group.props, id);
+  }
+  return <Fragment key={id}>{group}</Fragment>;
+}
+
+export function repetitionHostProtocol(readSnapshot, renderGroup) {
+  const snapshot = validateSnapshot(readSnapshot());
+  return snapshot.map((entry) => keyProtocolGroup(
+    entry.id,
+    renderGroup(
+      () => entry.value,
+      () => entry.index,
+      entry.id,
+    ),
+  ));
 }
 
 export const StatefulRow = component$((props) => {
@@ -62,6 +81,33 @@ export const PrototypeRoot = component$((props) => {
     : repetitionHost(snapshot.value, (value, index, id) => (
         <Fragment key={id}>
           <StatefulRow registryId={id} value={value} index={index} />
+          <span data-meta-id={id}>meta:{id}</span>
+        </Fragment>
+      ));
+
+  return <main data-root={props.rootKey}>{groups}</main>;
+});
+
+export const ProtocolRoot = component$((props) => {
+  const snapshot = useSignal(props.initialSnapshot);
+  rootSignals.set(props.rootKey, snapshot);
+
+  const groups = props.mode === 'nested'
+    ? repetitionHostProtocol(() => snapshot.value, (readValue, readIndex, id) => (
+        <section data-outer-id={id}>
+          <span data-outer-label={id}>{readValue().label}:{readIndex()}</span>
+          {repetitionHostProtocol(() => readValue().children, (readChildValue, readChildIndex, childId) => (
+            <StatefulRow
+              registryId={`${id}/${childId}`}
+              value={readChildValue()}
+              index={readChildIndex()}
+            />
+          ))}
+        </section>
+      ))
+    : repetitionHostProtocol(() => snapshot.value, (readValue, readIndex, id) => (
+        <Fragment>
+          <StatefulRow registryId={id} value={readValue()} index={readIndex()} />
           <span data-meta-id={id}>meta:{id}</span>
         </Fragment>
       ));
