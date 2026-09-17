@@ -7,84 +7,36 @@ import { createDOM } from '@builder.io/qwik/testing';
 import { createOptimizer } from '@builder.io/qwik/optimizer';
 
 const source = String.raw`
-import { Fragment, component$, useSignal, useTask$ } from '@builder.io/qwik';
+import { Fragment, component$, useSignal } from '@builder.io/qwik';
 
-export const rootSignals = new Map();
+export const orderSignals = new Map();
 export const rowSignals = new Map();
-export const cleanupEvents = [];
-
-export function validateSnapshot(snapshot) {
-  const seen = new Set();
-  for (const entry of snapshot) {
-    if (seen.has(entry.id)) throw new Error('duplicate repetition identity: ' + entry.id);
-    seen.add(entry.id);
-  }
-  return snapshot;
-}
-
-export function repetitionHost(snapshot, renderGroup) {
-  validateSnapshot(snapshot);
-  return snapshot.map((entry) => (
-    <Fragment key={entry.id}>
-      {renderGroup(entry.value, entry.index, entry.id)}
-    </Fragment>
-  ));
-}
 
 export const StatefulRow = component$((props) => {
   const mark = useSignal('cold');
-  rowSignals.set(props.registryId, mark);
-  useTask$(({ cleanup }) => {
-    const identity = props.registryId;
-    cleanup(() => cleanupEvents.push(identity));
-  });
+  rowSignals.set(props.id, mark);
   return (
-    <button data-id={props.registryId} onClick$={() => { mark.value = 'hot'; }}>
-      {props.label}:{props.index}:{mark.value}
+    <button data-id={props.id} onClick$={() => { mark.value = 'hot'; }}>
+      {props.id}:{mark.value}
     </button>
   );
 });
 
-function renderNestedGroup(value, index, id) {
+export const ProbeRoot = component$(() => {
+  const order = useSignal(['alpha', 'beta']);
+  orderSignals.set('root', order);
   return (
-    <section data-outer-id={id}>
-      <span data-outer-label={id}>{value.label}:{index}</span>
-      {repetitionHost(value.children, (childValue, childIndex, childId) => (
-        <StatefulRow
-          registryId={id + '/' + childId}
-          label={childValue.label}
-          index={childIndex}
-        />
+    <main>
+      {order.value.map((id) => (
+        <Fragment key={id}>
+          <StatefulRow id={id} />
+          <span data-meta-id={id}>{id}</span>
+        </Fragment>
       ))}
-    </section>
-  );
-}
-
-export const PrototypeRoot = component$((props) => {
-  const snapshot = useSignal(props.initialSnapshot);
-  rootSignals.set(props.rootKey, snapshot);
-  return (
-    <main data-root={props.rootKey}>
-      {repetitionHost(snapshot.value, renderNestedGroup)}
     </main>
   );
 });
 `;
-
-function makeNestedSnapshot(entries) {
-  return entries.map(([id, label, children], index) => ({
-    id,
-    index,
-    value: {
-      label,
-      children: children.map(([childId, childLabel], childIndex) => ({
-        id: childId,
-        index: childIndex,
-        value: { label: childLabel },
-      })),
-    },
-  }));
-}
 
 function byAttr(screen, attribute, value) {
   const node = Array.from(screen.querySelectorAll(`[${attribute}]`))
@@ -93,23 +45,22 @@ function byAttr(screen, attribute, value) {
   return node;
 }
 
-function assertInnerOrder(screen, outerId, expected) {
-  const outer = byAttr(screen, 'data-outer-id', outerId);
+function assertOrder(screen, attribute, expected) {
   assert.deepEqual(
-    Array.from(outer.querySelectorAll('[data-id]'))
-      .map((node) => node.getAttribute('data-id')),
+    Array.from(screen.querySelectorAll(`[${attribute}]`))
+      .map((node) => node.getAttribute(attribute)),
     expected,
   );
 }
 
-async function flushScheduledRender(screen, userEvent) {
+async function flush(screen, userEvent) {
   await userEvent(screen, 'click');
 }
 
 const optimizer = await createOptimizer();
 const output = await optimizer.transformModules({
   srcDir: '/src',
-  input: [{ path: 'optimizer-runtime.tsx', code: source }],
+  input: [{ path: 'keyed-fragment-probe.tsx', code: source }],
   entryStrategy: { type: 'inline' },
   minify: 'none',
   sourceMaps: false,
@@ -124,84 +75,38 @@ const errors = output.diagnostics.filter((diagnostic) => diagnostic.category ===
 assert.deepEqual(errors, []);
 assert.equal(output.modules.length, 1);
 
-const generatedPath = resolve(`.qwik-optimizer-runtime-${process.pid}.mjs`);
+const generatedPath = resolve(`.qwik-keyed-fragment-probe-${process.pid}.mjs`);
 await writeFile(generatedPath, output.modules[0].code, 'utf8');
 
 try {
   const runtime = await import(`${pathToFileURL(generatedPath).href}?run=${Date.now()}`);
-  const nestedDOM = await createDOM();
-  const nestedInitial = makeNestedSnapshot([
-    ['s:5:alpha', 'alpha', [
-      ['s:9:alpha-one', 'alpha-one'],
-      ['s:9:alpha-two', 'alpha-two'],
-    ]],
-    ['s:4:beta', 'beta', [
-      ['s:8:beta-one', 'beta-one'],
-    ]],
-  ]);
+  const dom = await createDOM();
+  const renderResult = await dom.render(jsx(runtime.ProbeRoot, {}));
+  await flush(dom.screen, dom.userEvent);
 
-  const nestedRender = await nestedDOM.render(jsx(runtime.PrototypeRoot, {
-    rootKey: 'nested',
-    initialSnapshot: nestedInitial,
-  }));
-  await flushScheduledRender(nestedDOM.screen, nestedDOM.userEvent);
-  console.log('Qwik optimizer diagnostic: nested initial flush complete');
+  const alphaState = runtime.rowSignals.get('alpha');
+  const betaState = runtime.rowSignals.get('beta');
+  assert.ok(alphaState);
+  assert.ok(betaState);
+  await dom.userEvent(byAttr(dom.screen, 'data-id', 'alpha'), 'click');
+  assert.equal(alphaState.value, 'hot');
+  assert.equal(byAttr(dom.screen, 'data-id', 'alpha').textContent, 'alpha:hot');
 
-  const alphaOneState = runtime.rowSignals.get('s:5:alpha/s:9:alpha-one');
-  const alphaTwoState = runtime.rowSignals.get('s:5:alpha/s:9:alpha-two');
-  const betaOneState = runtime.rowSignals.get('s:4:beta/s:8:beta-one');
-  assert.ok(alphaOneState);
-  assert.ok(alphaTwoState);
-  assert.ok(betaOneState);
-  await nestedDOM.userEvent(
-    byAttr(nestedDOM.screen, 'data-id', 's:5:alpha/s:9:alpha-one'),
-    'click',
-  );
-  assert.equal(alphaOneState.value, 'hot');
+  runtime.orderSignals.get('root').value = ['beta', 'alpha'];
+  await flush(dom.screen, dom.userEvent);
+  assertOrder(dom.screen, 'data-id', ['beta', 'alpha']);
+  assertOrder(dom.screen, 'data-meta-id', ['beta', 'alpha']);
 
-  const innerReordered = makeNestedSnapshot([
-    ['s:5:alpha', 'alpha-v2', [
-      ['s:9:alpha-two', 'alpha-two-v2'],
-      ['s:9:alpha-one', 'alpha-one-v2'],
-    ]],
-    ['s:4:beta', 'beta-v2', [
-      ['s:8:beta-one', 'beta-one-v2'],
-    ]],
-  ]);
-  runtime.rootSignals.get('nested').value = innerReordered;
-  await flushScheduledRender(nestedDOM.screen, nestedDOM.userEvent);
-  console.log('Qwik optimizer diagnostic: inner reorder complete');
-  assertInnerOrder(nestedDOM.screen, 's:5:alpha', [
-    's:5:alpha/s:9:alpha-two',
-    's:5:alpha/s:9:alpha-one',
-  ]);
-  assert.strictEqual(runtime.rowSignals.get('s:5:alpha/s:9:alpha-one'), alphaOneState);
-  assert.strictEqual(runtime.rowSignals.get('s:5:alpha/s:9:alpha-two'), alphaTwoState);
-  assert.strictEqual(runtime.rowSignals.get('s:4:beta/s:8:beta-one'), betaOneState);
-  assert.equal(byAttr(nestedDOM.screen, 'data-id', 's:5:alpha/s:9:alpha-one').textContent, 'alpha-one-v2:1:hot');
-  assert.equal(runtime.cleanupEvents.length, 0);
+  const alphaAfter = runtime.rowSignals.get('alpha');
+  const betaAfter = runtime.rowSignals.get('beta');
+  console.log(`Qwik keyed Fragment state: alphaSame=${alphaAfter === alphaState} betaSame=${betaAfter === betaState} alpha=${alphaAfter?.value}`);
+  if (alphaAfter !== alphaState || betaAfter !== betaState || alphaAfter?.value !== 'hot') {
+    throw new Error('Qwik keyed Fragment reorder did not retain component-local state');
+  }
 
-  const nestedWithoutAlpha = makeNestedSnapshot([
-    ['s:4:beta', 'beta-v2', [
-      ['s:8:beta-one', 'beta-one-v2'],
-    ]],
-  ]);
-  console.log('Qwik optimizer diagnostic: nested delete start');
-  runtime.rootSignals.get('nested').value = nestedWithoutAlpha;
-  await flushScheduledRender(nestedDOM.screen, nestedDOM.userEvent);
-  console.log('Qwik optimizer diagnostic: nested delete complete');
-  assert.equal(runtime.cleanupEvents.length, 2);
-  assert.deepEqual(
-    new Set(runtime.cleanupEvents),
-    new Set(['s:5:alpha/s:9:alpha-one', 's:5:alpha/s:9:alpha-two']),
-  );
-  assert.strictEqual(runtime.rowSignals.get('s:4:beta/s:8:beta-one'), betaOneState);
-
-  nestedRender.cleanup();
-  await flushScheduledRender(nestedDOM.screen, nestedDOM.userEvent);
-  assert.equal(runtime.cleanupEvents.length, 3);
-  assert.equal(new Set(runtime.cleanupEvents).size, 3);
-  console.log('Qwik optimizer nested reorder/delete: PASS');
+  renderResult.cleanup();
+  await flush(dom.screen, dom.userEvent);
+  console.log('Qwik minimal keyed Fragment reorder: PASS');
 } finally {
   await unlink(generatedPath).catch(() => {});
 }
