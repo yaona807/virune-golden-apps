@@ -17,7 +17,7 @@ export function validateSnapshot(snapshot) {
 
 function keyGroup(id, group) {
   if (group !== null && typeof group === 'object' && !Array.isArray(group) && 'type' in group && 'props' in group && 'key' in group) {
-    return h(group.type, { ...group.props, key: id });
+    return h(group.type, { ...group.props, key: id }, group.children);
   }
   return <Fragment key={id}>{group}</Fragment>;
 }
