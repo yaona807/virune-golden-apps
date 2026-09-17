@@ -1,4 +1,4 @@
-import { Fragment, component$, h, useSignal, useTask$ } from '@builder.io/qwik';
+import { Fragment, component$, useSignal, useTask$ } from '@builder.io/qwik';
 
 export const rootSignals = new Map();
 export const rowSignals = new Map();
@@ -16,9 +16,6 @@ export function validateSnapshot(snapshot) {
 }
 
 function keyGroup(id, group) {
-  if (group !== null && typeof group === 'object' && !Array.isArray(group) && 'type' in group && 'props' in group && 'key' in group) {
-    return h(group.type, { ...group.props, key: id }, group.children);
-  }
   return <Fragment key={id}>{group}</Fragment>;
 }
 
