@@ -27,12 +27,16 @@ function RepetitionGroup({ entry, renderGroup }) {
   return renderGroup(value, index, entry.id);
 }
 
-function RepetitionHost({ snapshot, renderGroup }) {
-  return validateSnapshot(snapshot).map((entry) => createElement(RepetitionGroup, {
+function RepetitionHostImpl({ readSnapshot, renderGroup }) {
+  return validateSnapshot(readSnapshot()).map((entry) => createElement(RepetitionGroup, {
     key: entry.id,
     entry,
     renderGroup,
   }));
+}
+
+function repetitionHost(readSnapshot, renderGroup) {
+  return createElement(RepetitionHostImpl, { readSnapshot, renderGroup });
 }
 
 function makeSnapshot(entries) {
@@ -85,29 +89,29 @@ function renderStatefulGroup(value, index, id) {
 }
 
 function BasicScenario({ snapshot }) {
-  return createElement(RepetitionHost, { snapshot, renderGroup: renderStatefulGroup });
+  return repetitionHost(() => snapshot, renderStatefulGroup);
 }
 
 function NestedOuter({ value, index, id }) {
   return createElement('section', { 'data-outer-id': id },
     createElement('span', { 'data-outer-label': id }, `${value().label}:${index()}`),
-    createElement(RepetitionHost, {
-      snapshot: value().children,
-      renderGroup: (childValue, childIndex, childId) => createElement(StatefulRow, {
+    repetitionHost(
+      () => value().children,
+      (childValue, childIndex, childId) => createElement(StatefulRow, {
         value: childValue,
         index: childIndex,
         id: childId,
         lifecyclePrefix: `${id}/`,
       }),
-    }),
+    ),
   );
 }
 
 function NestedScenario({ snapshot }) {
-  return createElement(RepetitionHost, {
-    snapshot,
-    renderGroup: (value, index, id) => createElement(NestedOuter, { value, index, id }),
-  });
+  return repetitionHost(
+    () => snapshot,
+    (value, index, id) => createElement(NestedOuter, { value, index, id }),
+  );
 }
 
 function rowText(root, id) {
@@ -137,8 +141,8 @@ function assertGroupedSiblingOrder(root, expected) {
 }
 
 // Duplicate identity must fail before the host creates any keyed group elements.
-assert.throws(() => RepetitionHost({
-  snapshot: makeSnapshot([
+assert.throws(() => RepetitionHostImpl({
+  readSnapshot: () => makeSnapshot([
     ['s:5:alpha', 'alpha'],
     ['s:5:alpha', 'alpha-copy'],
   ]),
