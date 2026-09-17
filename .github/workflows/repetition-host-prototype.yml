@@ -11,6 +11,7 @@ on:
       - 'preact/package.json'
       - 'preact/package-lock.json'
       - 'vue-host-prototype/**'
+      - 'qwik-host-prototype/**'
       - '.github/workflows/repetition-host-prototype.yml'
   workflow_dispatch:
 
@@ -109,3 +110,26 @@ jobs:
       - name: Run Vue repetition host prototype against Vue renderer
         working-directory: vue-host-prototype
         run: node repetition-host-prototype.mjs
+
+  qwik-host:
+    name: Qwik identity-group host / Ubuntu 24.04 / Node 24
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify checkout identity
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
+      - name: Install pinned Qwik prototype dependencies
+        working-directory: qwik-host-prototype
+        run: npm ci --ignore-scripts --legacy-peer-deps
+      - name: Run Qwik repetition host prototype against Qwik renderer
+        working-directory: qwik-host-prototype
+        run: node --conditions=development repetition-host-prototype.mjs
