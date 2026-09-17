@@ -75,31 +75,20 @@ function renderStatefulGroup(value, index, id) {
   ];
 }
 
-export function nestedOuterRender(props) {
+function renderNestedGroup(value, index, id) {
   return jsx('section', {
-    'data-outer-id': props.identity,
+    'data-outer-id': id,
     children: [
       jsx('span', {
-        'data-outer-label': props.identity,
-        children: `${props.label}:${props.index}`,
+        'data-outer-label': id,
+        children: `${value.label}:${index}`,
       }),
-      repetitionHost(props.childrenSnapshot, (value, index, id) => jsx(StatefulRow, {
-        registryId: `${props.identity}/${id}`,
-        label: value.label,
-        index,
+      repetitionHost(value.children, (childValue, childIndex, childId) => jsx(StatefulRow, {
+        registryId: `${id}/${childId}`,
+        label: childValue.label,
+        index: childIndex,
       })),
     ],
-  });
-}
-
-export const NestedOuter = componentQrl(qrl(moduleUrl, 'nestedOuterRender'));
-
-function renderNestedGroup(value, index, id) {
-  return jsx(NestedOuter, {
-    identity: id,
-    label: value.label,
-    index,
-    childrenSnapshot: value.children,
   });
 }
 
