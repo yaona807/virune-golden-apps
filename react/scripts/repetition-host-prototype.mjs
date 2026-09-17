@@ -197,6 +197,7 @@ try {
   });
   assert.equal(rowText(rootElement, 's:5:alpha'), 'alpha:0:hot');
 
+  // Append. Alpha/Beta are reconciled by opaque id even though value objects are new.
   snapshot = makeSnapshot([
     ['s:5:alpha', 'alpha'],
     ['s:4:beta', 'beta'],
@@ -210,6 +211,8 @@ try {
   assert.equal(rowText(rootElement, 's:5:alpha'), 'alpha:0:hot');
   assert.equal(lifecycle.filter((event) => event === 'mount:s:5:alpha').length, 1);
 
+  // Prepend. State and both sibling children move as one logical identity group,
+  // while index() reflects the current snapshot.
   snapshot = makeSnapshot([
     ['s:4:zero', 'zero'],
     ['s:5:alpha', 'alpha'],
@@ -223,6 +226,7 @@ try {
   assertGroupedSiblingOrder(rootElement, ['s:4:zero', 's:5:alpha', 's:4:beta', 's:5:gamma']);
   assert.equal(rowText(rootElement, 's:5:alpha'), 'alpha:1:hot');
 
+  // Delete beta. Only beta is disposed; alpha remains mounted and hot.
   snapshot = makeSnapshot([
     ['s:4:zero', 'zero'],
     ['s:5:alpha', 'alpha'],
@@ -235,6 +239,7 @@ try {
   assert.equal(lifecycle.filter((event) => event === 'dispose:s:5:alpha').length, 0);
   assert.equal(rowText(rootElement, 's:5:alpha'), 'alpha:1:hot');
 
+  // Reorder surviving groups. State remains attached to id and index updates.
   snapshot = makeSnapshot([
     ['s:5:gamma', 'gamma'],
     ['s:4:zero', 'zero'],
@@ -247,6 +252,7 @@ try {
   assertGroupedSiblingOrder(rootElement, ['s:5:gamma', 's:4:zero', 's:5:alpha']);
   assert.equal(rowText(rootElement, 's:5:alpha'), 'alpha:2:hot');
 
+  // Same identity + changed value updates without replacing local state.
   snapshot = makeSnapshot([
     ['s:5:gamma', 'gamma'],
     ['s:4:zero', 'zero'],
@@ -258,6 +264,7 @@ try {
   assert.equal(rowText(rootElement, 's:5:alpha'), 'alpha-v2:2:hot');
   assert.equal(lifecycle.filter((event) => event === 'mount:s:5:alpha').length, 1);
 
+  // Identity transition alpha -> delta is remove + add. State must not transfer.
   snapshot = makeSnapshot([
     ['s:5:gamma', 'gamma'],
     ['s:4:zero', 'zero'],
@@ -269,6 +276,10 @@ try {
   assert.equal(lifecycle.filter((event) => event === 'dispose:s:5:alpha').length, 1);
   assert.equal(rowText(rootElement, 's:5:delta'), 'delta:2:cold');
 
+  // This React implementation re-invokes the host-deferred body on normal renders
+  // while preserving child component identity through the keyed group boundary.
+  // Current evidence therefore must not treat callback invocation count as a proven
+  // cross-framework lifecycle invariant.
   assert.ok((renderCalls.get('s:5:alpha') ?? 0) > 1);
   assert.equal(lifecycle.filter((event) => event === 'mount:s:5:alpha').length, 1);
 
