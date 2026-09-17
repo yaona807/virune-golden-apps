@@ -8,8 +8,6 @@ import {
 } from '@builder.io/qwik';
 
 const moduleUrl = import.meta.url;
-const cleanupTaskQrl = qrl(moduleUrl, 'rowCleanupTask');
-const emptyCleanupTaskQrl = qrl(moduleUrl, 'emptyCleanupTask');
 const markHotQrl = qrl(moduleUrl, 'markHot');
 
 export const rootSignals = new Map();
@@ -40,10 +38,6 @@ export function rowCleanupTask({ cleanup }) {
   cleanup(() => cleanupEvents.push(token));
 }
 
-export function emptyCleanupTask({ cleanup }) {
-  cleanup(() => {});
-}
-
 export function markHot(_event, element) {
   const identity = element.getAttribute('data-id');
   const signal = rowSignals.get(identity);
@@ -55,7 +49,7 @@ export function statefulRowRender(props) {
   const mark = useSignal('cold');
   rowSignals.set(props.registryId, mark);
   rowRenderCounts.set(props.registryId, (rowRenderCounts.get(props.registryId) ?? 0) + 1);
-  useTaskQrl(cleanupTaskQrl);
+  useTaskQrl(qrl(moduleUrl, 'rowCleanupTask'));
 
   return jsx('button', {
     'data-id': props.registryId,
@@ -65,16 +59,6 @@ export function statefulRowRender(props) {
 }
 
 export const StatefulRow = componentQrl(qrl(moduleUrl, 'statefulRowRender'));
-
-export function taskOnlyRowRender(props) {
-  useTaskQrl(emptyCleanupTaskQrl);
-  return jsx('button', {
-    'data-id': props.registryId,
-    children: `${props.label}:${props.index}:task-only`,
-  });
-}
-
-export const TaskOnlyRow = componentQrl(qrl(moduleUrl, 'taskOnlyRowRender'));
 
 function renderStatefulGroup(value, index, id) {
   return [
@@ -98,15 +82,11 @@ function renderNestedGroup(value, index, id) {
         'data-outer-label': id,
         children: `${value.label}:${index}`,
       }),
-      repetitionHost(value.children, (childValue, childIndex, childId) => {
-        const registryId = `${id}/${childId}`;
-        const Row = childId.endsWith('-two') ? TaskOnlyRow : StatefulRow;
-        return jsx(Row, {
-          registryId,
-          label: childValue.label,
-          index: childIndex,
-        });
-      }),
+      repetitionHost(value.children, (childValue, childIndex, childId) => jsx(StatefulRow, {
+        registryId: `${id}/${childId}`,
+        label: childValue.label,
+        index: childIndex,
+      })),
     ],
   });
 }
