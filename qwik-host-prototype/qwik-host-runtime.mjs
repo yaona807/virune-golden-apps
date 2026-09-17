@@ -76,6 +76,7 @@ function renderStatefulGroup(value, index, id) {
 }
 
 function renderNestedGroup(value, index, id) {
+  const diagnosticChildren = value.children.filter((entry) => !entry.id.endsWith('-two'));
   return jsx('section', {
     'data-outer-id': id,
     children: [
@@ -83,7 +84,7 @@ function renderNestedGroup(value, index, id) {
         'data-outer-label': id,
         children: `${value.label}:${index}`,
       }),
-      repetitionHost(value.children, (childValue, childIndex, childId) => jsx(StatefulRow, {
+      repetitionHost(diagnosticChildren, (childValue, childIndex, childId) => jsx(StatefulRow, {
         registryId: `${id}/${childId}`,
         label: childValue.label,
         index: childIndex,
