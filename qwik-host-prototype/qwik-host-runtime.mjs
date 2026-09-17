@@ -33,14 +33,20 @@ export function repetitionHost(snapshot, renderGroup) {
   }, entry.id));
 }
 
+function recordCleanup(token, symbol) {
+  console.log(`Qwik cleanup start: ${symbol}:${token}`);
+  cleanupEvents.push(token);
+  console.log(`Qwik cleanup end: ${symbol}:${token}`);
+}
+
 export function rowCleanupTask({ cleanup }) {
   const token = ++nextCleanupToken;
-  cleanup(() => cleanupEvents.push(token));
+  cleanup(() => recordCleanup(token, 'one'));
 }
 
 export function rowCleanupTaskTwo({ cleanup }) {
   const token = ++nextCleanupToken;
-  cleanup(() => cleanupEvents.push(token));
+  cleanup(() => recordCleanup(token, 'two'));
 }
 
 export function markHot(_event, element) {
