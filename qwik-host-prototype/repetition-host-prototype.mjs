@@ -31,7 +31,7 @@ export const StatefulRow = component$((props) => {
   rowSignals.set(props.id, mark);
   return (
     <button data-id={props.id} onClick$={() => { mark.value = 'hot'; }}>
-      {props.label}:{props.index}:{mark.value}
+      {props.value.label}:{props.index}:{mark.value}
     </button>
   );
 });
@@ -46,7 +46,7 @@ export const ProbeRoot = component$(() => {
     <main>
       {repetitionHost(snapshot.value, (value, index, id) => (
         <Fragment key={id}>
-          <StatefulRow id={id} label={value.label} index={index} />
+          <StatefulRow id={id} value={value} index={index} />
           <span data-meta-id={id}>{id}</span>
         </Fragment>
       ))}
@@ -91,7 +91,6 @@ const output = await optimizer.transformModules({
 const errors = output.diagnostics.filter((diagnostic) => diagnostic.category === 'error' || diagnostic.category === 'sourceError');
 assert.deepEqual(errors, []);
 assert.equal(output.modules.length, 1);
-console.log(output.modules[0].code);
 
 const generatedPath = resolve(`.qwik-host-callback-group-probe-${process.pid}.mjs`);
 await writeFile(generatedPath, output.modules[0].code, 'utf8');
@@ -120,15 +119,15 @@ try {
 
   const alphaAfter = runtime.rowSignals.get('alpha');
   const betaAfter = runtime.rowSignals.get('beta');
-  console.log(`Qwik Host callback-group state: alphaSame=${alphaAfter === alphaState} betaSame=${betaAfter === betaState} alpha=${alphaAfter?.value}`);
+  console.log(`Qwik Host transported-value state: alphaSame=${alphaAfter === alphaState} betaSame=${betaAfter === betaState} alpha=${alphaAfter?.value}`);
   if (alphaAfter !== alphaState || betaAfter !== betaState || alphaAfter?.value !== 'hot') {
-    throw new Error('Qwik Host callback-group reorder did not retain component-local state');
+    throw new Error('Qwik Host transported-value reorder did not retain component-local state');
   }
   assert.equal(byAttr(dom.screen, 'data-id', 'alpha').textContent, 'alpha-v2:1:hot');
 
   renderResult.cleanup();
   await flush(dom.screen, dom.userEvent);
-  console.log('Qwik Host callback-group reorder: PASS');
+  console.log('Qwik Host transported-value reorder: PASS');
 } finally {
   await unlink(generatedPath).catch(() => {});
 }
