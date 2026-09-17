@@ -22,17 +22,21 @@ function validateSnapshot(snapshot) {
 function RepetitionGroup({ entry, renderGroup }) {
   const currentEntry = useRef(entry);
   currentEntry.current = entry;
-  const value = useCallback(() => currentEntry.current.value, []);
-  const index = useCallback(() => currentEntry.current.index, []);
-  return renderGroup(value, index, entry.id);
+  const readValue = useCallback(() => currentEntry.current.value, []);
+  const readIndex = useCallback(() => currentEntry.current.index, []);
+  return renderGroup(readValue, readIndex, entry.id);
 }
 
-function RepetitionHost({ snapshot, renderGroup }) {
-  return validateSnapshot(snapshot).map((entry) => createElement(RepetitionGroup, {
+function RepetitionHostImpl({ readSnapshot, renderGroup }) {
+  return validateSnapshot(readSnapshot()).map((entry) => createElement(RepetitionGroup, {
     key: entry.id,
     entry,
     renderGroup,
   }));
+}
+
+function repetitionHost(readSnapshot, renderGroup) {
+  return createElement(RepetitionHostImpl, { readSnapshot, renderGroup });
 }
 
 function makeSnapshot(entries) {
@@ -73,41 +77,45 @@ function StatefulRow({ value, index, id, lifecyclePrefix = '' }) {
     type: 'button',
     'data-id': `${lifecyclePrefix}${id}`,
     onClick: () => setMark('hot'),
-  }, `${value().label}:${index()}:${mark}`);
+  }, `${value.label}:${index}:${mark}`);
 }
 
-function renderStatefulGroup(value, index, id) {
+function renderStatefulGroup(readValue, readIndex, id) {
   renderCalls.set(id, (renderCalls.get(id) ?? 0) + 1);
   return createElement(Fragment, null,
-    createElement(StatefulRow, { value, index, id }),
+    createElement(StatefulRow, { value: readValue(), index: readIndex(), id }),
     createElement('span', { 'data-meta-id': id }, `meta:${id}`),
   );
 }
 
 function BasicScenario({ snapshot }) {
-  return createElement(RepetitionHost, { snapshot, renderGroup: renderStatefulGroup });
+  return repetitionHost(() => snapshot, renderStatefulGroup);
 }
 
 function NestedOuter({ value, index, id }) {
   return createElement('section', { 'data-outer-id': id },
-    createElement('span', { 'data-outer-label': id }, `${value().label}:${index()}`),
-    createElement(RepetitionHost, {
-      snapshot: value().children,
-      renderGroup: (childValue, childIndex, childId) => createElement(StatefulRow, {
-        value: childValue,
-        index: childIndex,
+    createElement('span', { 'data-outer-label': id }, `${value.label}:${index}`),
+    repetitionHost(
+      () => value.children,
+      (readChildValue, readChildIndex, childId) => createElement(StatefulRow, {
+        value: readChildValue(),
+        index: readChildIndex(),
         id: childId,
         lifecyclePrefix: `${id}/`,
       }),
-    }),
+    ),
   );
 }
 
 function NestedScenario({ snapshot }) {
-  return createElement(RepetitionHost, {
-    snapshot,
-    renderGroup: (value, index, id) => createElement(NestedOuter, { value, index, id }),
-  });
+  return repetitionHost(
+    () => snapshot,
+    (readValue, readIndex, id) => createElement(NestedOuter, {
+      value: readValue(),
+      index: readIndex(),
+      id,
+    }),
+  );
 }
 
 function rowText(root, id) {
@@ -137,8 +145,8 @@ function assertGroupedSiblingOrder(root, expected) {
 }
 
 // Duplicate identity must fail before the host creates any keyed group elements.
-assert.throws(() => RepetitionHost({
-  snapshot: makeSnapshot([
+assert.throws(() => RepetitionHostImpl({
+  readSnapshot: () => makeSnapshot([
     ['s:5:alpha', 'alpha'],
     ['s:5:alpha', 'alpha-copy'],
   ]),

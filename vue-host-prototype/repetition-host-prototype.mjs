@@ -91,22 +91,26 @@ function validateSnapshot(snapshot) {
 const RepetitionGroup = {
   props: ['entry', 'renderGroup'],
   setup(props) {
-    const value = () => props.entry.value;
-    const index = () => props.entry.index;
-    return () => props.renderGroup(value, index, props.entry.id);
+    const readValue = () => props.entry.value;
+    const readIndex = () => props.entry.index;
+    return () => props.renderGroup(readValue, readIndex, props.entry.id);
   },
 };
 
-const RepetitionHost = {
-  props: ['snapshot', 'renderGroup'],
+const RepetitionHostImpl = {
+  props: ['readSnapshot', 'renderGroup'],
   setup(props) {
-    return () => validateSnapshot(props.snapshot).map((entry) => h(RepetitionGroup, {
+    return () => validateSnapshot(props.readSnapshot()).map((entry) => h(RepetitionGroup, {
       key: entry.id,
       entry,
       renderGroup: props.renderGroup,
     }));
   },
 };
+
+function repetitionHost(readSnapshot, renderGroup) {
+  return h(RepetitionHostImpl, { readSnapshot, renderGroup });
+}
 
 function makeSnapshot(entries) {
   return entries.map(([id, label], index) => ({
@@ -145,14 +149,14 @@ const StatefulRow = {
     return () => h('button', {
       'data-id': `${prefix}${props.identity}`,
       onClick: () => { mark.value = 'hot'; },
-    }, `${props.value().label}:${props.index()}:${mark.value}`);
+    }, `${props.value.label}:${props.index}:${mark.value}`);
   },
 };
 
-function renderStatefulGroup(value, index, id) {
+function renderStatefulGroup(readValue, readIndex, id) {
   renderCalls.set(id, (renderCalls.get(id) ?? 0) + 1);
   return h(Fragment, null, [
-    h(StatefulRow, { value, index, identity: id }),
+    h(StatefulRow, { value: readValue(), index: readIndex(), identity: id }),
     h('span', { 'data-meta-id': id }, `meta:${id}`),
   ]);
 }
@@ -161,22 +165,22 @@ const NestedOuter = {
   props: ['value', 'index', 'identity'],
   setup(props) {
     return () => h('section', { 'data-outer-id': props.identity }, [
-      h('span', { 'data-outer-label': props.identity }, `${props.value().label}:${props.index()}`),
-      h(RepetitionHost, {
-        snapshot: props.value().children,
-        renderGroup: (childValue, childIndex, childId) => h(StatefulRow, {
-          value: childValue,
-          index: childIndex,
+      h('span', { 'data-outer-label': props.identity }, `${props.value.label}:${props.index}`),
+      repetitionHost(
+        () => props.value.children,
+        (readChildValue, readChildIndex, childId) => h(StatefulRow, {
+          value: readChildValue(),
+          index: readChildIndex(),
           identity: childId,
           lifecyclePrefix: `${props.identity}/`,
         }),
-      }),
+      ),
     ]);
   },
 };
 
-function nestedRenderGroup(value, index, id) {
-  return h(NestedOuter, { value, index, identity: id });
+function nestedRenderGroup(readValue, readIndex, id) {
+  return h(NestedOuter, { value: readValue(), index: readIndex(), identity: id });
 }
 
 function descendants(node, predicate, output = []) {
@@ -215,13 +219,13 @@ async function click(root, id) {
   const container = rootNode();
   let captured;
   const app = renderer.createApp({
-    setup: () => () => h(RepetitionHost, {
-      snapshot: makeSnapshot([
+    setup: () => () => repetitionHost(
+      () => makeSnapshot([
         ['s:5:alpha', 'alpha'],
         ['s:5:alpha', 'alpha-copy'],
       ]),
-      renderGroup: renderStatefulGroup,
-    }),
+      renderStatefulGroup,
+    ),
   });
   app.config.errorHandler = error => { captured = error; };
   app.mount(container);
@@ -238,7 +242,7 @@ const snapshot = ref(makeSnapshot([
   ['s:4:beta', 'beta'],
 ]));
 const app = renderer.createApp({
-  setup: () => () => h(RepetitionHost, { snapshot: snapshot.value, renderGroup: renderStatefulGroup }),
+  setup: () => () => repetitionHost(() => snapshot.value, renderStatefulGroup),
 });
 app.mount(container);
 await nextTick();
@@ -325,7 +329,7 @@ const nestedSnapshot = ref(makeNestedSnapshot([
   ]],
 ]));
 const nestedApp = renderer.createApp({
-  setup: () => () => h(RepetitionHost, { snapshot: nestedSnapshot.value, renderGroup: nestedRenderGroup }),
+  setup: () => () => repetitionHost(() => nestedSnapshot.value, nestedRenderGroup),
 });
 nestedApp.mount(nestedContainer);
 await nextTick();

@@ -1,4 +1,4 @@
-import { Fragment, component$, useSignal, useTask$ } from '@builder.io/qwik';
+import { Fragment, component$, h, useSignal, useTask$ } from '@builder.io/qwik';
 
 export const rootSignals = new Map();
 export const rowSignals = new Map();
@@ -15,9 +15,23 @@ export function validateSnapshot(snapshot) {
   return snapshot;
 }
 
-export function repetitionHost(snapshot, renderGroup) {
-  validateSnapshot(snapshot);
-  return snapshot.map((entry) => renderGroup(entry.value, entry.index, entry.id));
+function keyGroup(id, group) {
+  if (group !== null && typeof group === 'object' && !Array.isArray(group) && 'type' in group && 'props' in group && 'key' in group) {
+    return h(group.type, { ...group.props, key: id }, group.children);
+  }
+  return <Fragment key={id}>{group}</Fragment>;
+}
+
+export function repetitionHost(readSnapshot, renderGroup) {
+  const snapshot = validateSnapshot(readSnapshot());
+  return snapshot.map((entry) => keyGroup(
+    entry.id,
+    renderGroup(
+      () => entry.value,
+      () => entry.index,
+      entry.id,
+    ),
+  ));
 }
 
 export const StatefulRow = component$((props) => {
@@ -46,22 +60,21 @@ export const PrototypeRoot = component$((props) => {
   rootSignals.set(props.rootKey, snapshot);
 
   const groups = props.mode === 'nested'
-    ? repetitionHost(snapshot.value, (value, index, id) => (
-        <section key={id} data-outer-id={id}>
-          <span data-outer-label={id}>{value.label}:{index}</span>
-          {repetitionHost(value.children, (childValue, childIndex, childId) => (
+    ? repetitionHost(() => snapshot.value, (readValue, readIndex, id) => (
+        <section data-outer-id={id}>
+          <span data-outer-label={id}>{readValue().label}:{readIndex()}</span>
+          {repetitionHost(() => readValue().children, (readChildValue, readChildIndex, childId) => (
             <StatefulRow
-              key={childId}
               registryId={`${id}/${childId}`}
-              value={childValue}
-              index={childIndex}
+              value={readChildValue()}
+              index={readChildIndex()}
             />
           ))}
         </section>
       ))
-    : repetitionHost(snapshot.value, (value, index, id) => (
-        <Fragment key={id}>
-          <StatefulRow registryId={id} value={value} index={index} />
+    : repetitionHost(() => snapshot.value, (readValue, readIndex, id) => (
+        <Fragment>
+          <StatefulRow registryId={id} value={readValue()} index={readIndex()} />
           <span data-meta-id={id}>meta:{id}</span>
         </Fragment>
       ));
