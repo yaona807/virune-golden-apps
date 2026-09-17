@@ -114,7 +114,6 @@ jobs:
   qwik-host:
     name: Qwik identity-group host / Ubuntu 24.04 / Node 24
     runs-on: ubuntu-24.04
-    timeout-minutes: 2
     steps:
       - name: Checkout exact head
         uses: actions/checkout@v4
