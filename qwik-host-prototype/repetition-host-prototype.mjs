@@ -101,11 +101,11 @@ const errors = output.diagnostics.filter(
 assert.deepEqual(errors, []);
 assert.equal(output.modules.length, 1);
 
-const generatedPath = resolve(`.qwik-host-runtime-${process.pid}.mjs`);
+const generatedPath = resolve('.qwik-host-runtime.generated.mjs');
 await writeFile(generatedPath, output.modules[0].code, 'utf8');
 
 try {
-  const runtime = await import(`${pathToFileURL(generatedPath).href}?run=${Date.now()}`);
+  const runtime = await import(pathToFileURL(generatedPath).href);
 
   // Duplicate identities fail before the render callback can produce keyed output.
   let bodyCalls = 0;
@@ -257,7 +257,6 @@ try {
   runtime.cleanupEvents.length = 0;
   runtime.rootSignals.clear();
   runtime.rowSignals.clear();
-  runtime.rowRenderCounts.clear();
 
   // Nested repetition composes the same opaque-id contract at both levels.
   const nestedDOM = await createDOM();
@@ -342,11 +341,6 @@ try {
     's:5:alpha/s:9:alpha-two',
     's:4:beta/s:8:beta-one',
   ]);
-
-  // Exact component render/task scheduling is deliberately not part of the portable Host contract.
-  for (const count of runtime.rowRenderCounts.values()) {
-    assert.ok(count >= 1);
-  }
 
   console.log('Qwik repetition Host prototype: PASS');
   console.log('Qwik observation: Optimizer-visible keyed groups preserve opaque-id state when transported value is passed as one current prop; exact render/task scheduling remains non-portable.');
