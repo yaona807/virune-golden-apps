@@ -132,4 +132,4 @@ jobs:
         run: npm ci --ignore-scripts --legacy-peer-deps
       - name: Run Qwik repetition host prototype against Qwik renderer
         working-directory: qwik-host-prototype
-        run: node repetition-host-prototype.mjs
+        run: node --conditions=development repetition-host-prototype.mjs
