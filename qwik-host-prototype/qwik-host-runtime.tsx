@@ -2,7 +2,6 @@ import { Fragment, component$, useSignal, useTask$ } from '@builder.io/qwik';
 
 export const rootSignals = new Map();
 export const rowSignals = new Map();
-export const rowRenderCounts = new Map();
 export const cleanupEvents = [];
 
 export function validateSnapshot(snapshot) {
@@ -24,7 +23,6 @@ export function repetitionHost(snapshot, renderGroup) {
 export const StatefulRow = component$((props) => {
   const mark = useSignal('cold');
   rowSignals.set(props.registryId, mark);
-  rowRenderCounts.set(props.registryId, (rowRenderCounts.get(props.registryId) ?? 0) + 1);
 
   useTask$(({ cleanup }) => {
     const identity = props.registryId;
