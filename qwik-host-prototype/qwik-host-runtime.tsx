@@ -1,4 +1,4 @@
-import { Fragment, component$, jsx, useSignal, useTask$ } from '@builder.io/qwik';
+import { Fragment, component$, useSignal, useTask$ } from '@builder.io/qwik';
 
 export const rootSignals = new Map();
 export const rowSignals = new Map();
@@ -21,8 +21,9 @@ export function repetitionHost(snapshot, renderGroup) {
 }
 
 function keyProtocolGroup(id, group) {
-  if (group !== null && typeof group === 'object' && !Array.isArray(group) && 'type' in group && 'props' in group) {
-    return jsx(group.type, group.props, id);
+  if (group !== null && typeof group === 'object' && !Array.isArray(group) && 'type' in group && 'props' in group && 'key' in group) {
+    group.key = id;
+    return group;
   }
   return <Fragment key={id}>{group}</Fragment>;
 }
