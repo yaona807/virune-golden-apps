@@ -30,6 +30,14 @@ function byAttr(screen, attribute, value) {
   return node;
 }
 
+function assertOuterOrder(screen, expected) {
+  assert.deepEqual(
+    Array.from(screen.querySelectorAll('[data-outer-id]'))
+      .map((node) => node.getAttribute('data-outer-id')),
+    expected,
+  );
+}
+
 async function flushScheduledRender(screen, userEvent) {
   await userEvent(screen, 'click');
 }
@@ -61,35 +69,50 @@ await flushScheduledRender(nestedDOM.screen, nestedDOM.userEvent);
 console.log('Qwik diagnostic: nested initial flush complete');
 
 const alphaOneState = rowSignals.get('s:5:alpha/s:9:alpha-one');
+const alphaTwoState = rowSignals.get('s:5:alpha/s:9:alpha-two');
 const betaOneState = rowSignals.get('s:4:beta/s:8:beta-one');
 assert.ok(alphaOneState);
+assert.ok(alphaTwoState);
 assert.ok(betaOneState);
 await nestedDOM.userEvent(
   byAttr(nestedDOM.screen, 'data-id', 's:5:alpha/s:9:alpha-one'),
   'click',
 );
 assert.equal(alphaOneState.value, 'hot');
-console.log('Qwik diagnostic: nested state click complete');
 
-const nestedWithoutAlpha = makeNestedSnapshot([
-  ['s:4:beta', 'beta', [
-    ['s:8:beta-one', 'beta-one'],
+const outerReordered = makeNestedSnapshot([
+  ['s:4:beta', 'beta-v2', [
+    ['s:8:beta-one', 'beta-one-v2'],
+  ]],
+  ['s:5:alpha', 'alpha-v2', [
+    ['s:9:alpha-one', 'alpha-one-v2'],
+    ['s:9:alpha-two', 'alpha-two-v2'],
   ]],
 ]);
-assert.notStrictEqual(nestedWithoutAlpha[0].value, nestedInitial[1].value);
-console.log('Qwik diagnostic: nested delete start');
-await replaceSnapshot('nested', nestedWithoutAlpha, nestedDOM.screen, nestedDOM.userEvent);
-console.log('Qwik diagnostic: nested delete complete');
+console.log('Qwik diagnostic: outer reorder start');
+await replaceSnapshot('nested', outerReordered, nestedDOM.screen, nestedDOM.userEvent);
+console.log('Qwik diagnostic: outer reorder complete');
+assertOuterOrder(nestedDOM.screen, ['s:4:beta', 's:5:alpha']);
+assert.strictEqual(rowSignals.get('s:5:alpha/s:9:alpha-one'), alphaOneState);
+assert.strictEqual(rowSignals.get('s:5:alpha/s:9:alpha-two'), alphaTwoState);
+assert.strictEqual(rowSignals.get('s:4:beta/s:8:beta-one'), betaOneState);
+assert.equal(byAttr(nestedDOM.screen, 'data-id', 's:5:alpha/s:9:alpha-one').textContent, 'alpha-one-v2:0:hot');
+assert.equal(cleanupEvents.length, 0);
 
-assert.equal(byAttr(nestedDOM.screen, 'data-id', 's:4:beta/s:8:beta-one').textContent, 'beta-one:0:cold');
+const nestedWithoutAlpha = makeNestedSnapshot([
+  ['s:4:beta', 'beta-v2', [
+    ['s:8:beta-one', 'beta-one-v2'],
+  ]],
+]);
+console.log('Qwik diagnostic: nested delete after outer reorder start');
+await replaceSnapshot('nested', nestedWithoutAlpha, nestedDOM.screen, nestedDOM.userEvent);
+console.log('Qwik diagnostic: nested delete after outer reorder complete');
 assert.strictEqual(rowSignals.get('s:4:beta/s:8:beta-one'), betaOneState);
 assert.equal(cleanupEvents.length, 2);
 assert.equal(new Set(cleanupEvents).size, cleanupEvents.length);
 
 nestedRender.cleanup();
 await flushScheduledRender(nestedDOM.screen, nestedDOM.userEvent);
-console.log('Qwik diagnostic: nested cleanup complete');
 assert.equal(cleanupEvents.length, 3);
 assert.equal(new Set(cleanupEvents).size, cleanupEvents.length);
-
-console.log('Qwik nested delete without reorder: PASS');
+console.log('Qwik outer reorder then nested delete: PASS');
