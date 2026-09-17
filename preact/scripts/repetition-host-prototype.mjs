@@ -16,9 +16,9 @@ function validateSnapshot(snapshot) {
 function RepetitionGroup({ entry, renderGroup }) {
   const currentEntry = useRef(entry);
   currentEntry.current = entry;
-  const value = useCallback(() => currentEntry.current.value, []);
-  const index = useCallback(() => currentEntry.current.index, []);
-  return renderGroup(value, index, entry.id);
+  const readValue = useCallback(() => currentEntry.current.value, []);
+  const readIndex = useCallback(() => currentEntry.current.index, []);
+  return renderGroup(readValue, readIndex, entry.id);
 }
 
 function RepetitionHostImpl({ readSnapshot, renderGroup }) {
@@ -71,13 +71,13 @@ function StatefulRow({ value, index, id, lifecyclePrefix = '' }) {
     type: 'button',
     'data-id': `${lifecyclePrefix}${id}`,
     onClick: () => setMark('hot'),
-  }, `${value().label}:${index()}:${mark}`);
+  }, `${value.label}:${index}:${mark}`);
 }
 
-function renderStatefulGroup(value, index, id) {
+function renderStatefulGroup(readValue, readIndex, id) {
   renderCalls.set(id, (renderCalls.get(id) ?? 0) + 1);
   return h(Fragment, null,
-    h(StatefulRow, { value, index, id }),
+    h(StatefulRow, { value: readValue(), index: readIndex(), id }),
     h('span', { 'data-meta-id': id }, `meta:${id}`),
   );
 }
@@ -88,12 +88,12 @@ function BasicScenario({ snapshot }) {
 
 function NestedOuter({ value, index, id }) {
   return h('section', { 'data-outer-id': id },
-    h('span', { 'data-outer-label': id }, `${value().label}:${index()}`),
+    h('span', { 'data-outer-label': id }, `${value.label}:${index}`),
     repetitionHost(
-      () => value().children,
-      (childValue, childIndex, childId) => h(StatefulRow, {
-        value: childValue,
-        index: childIndex,
+      () => value.children,
+      (readChildValue, readChildIndex, childId) => h(StatefulRow, {
+        value: readChildValue(),
+        index: readChildIndex(),
         id: childId,
         lifecyclePrefix: `${id}/`,
       }),
@@ -104,7 +104,11 @@ function NestedOuter({ value, index, id }) {
 function NestedScenario({ snapshot }) {
   return repetitionHost(
     () => snapshot,
-    (value, index, id) => h(NestedOuter, { value, index, id }),
+    (readValue, readIndex, id) => h(NestedOuter, {
+      value: readValue(),
+      index: readIndex(),
+      id,
+    }),
   );
 }
 
@@ -246,9 +250,6 @@ try {
   assert.equal(lifecycle.filter((event) => event === 'dispose:s:5:alpha').length, 1);
   assert.equal(rowText(rootElement, 's:5:delta'), 'delta:2:cold');
 
-  // Like React, Preact may re-run the host body while keyed descendant state is
-  // preserved. Callback invocation count is observed but is not a portable Host
-  // lifecycle invariant.
   assert.ok((renderCalls.get('s:5:alpha') ?? 0) > 1);
   assert.equal(lifecycle.filter((event) => event === 'mount:s:5:alpha').length, 1);
 
