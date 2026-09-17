@@ -4,7 +4,7 @@ import {
   jsx,
   qrl,
   useSignal,
-  useVisibleTaskQrl,
+  useTaskQrl,
 } from '@builder.io/qwik';
 
 const moduleUrl = import.meta.url;
@@ -38,6 +38,11 @@ export function rowCleanupTask({ cleanup }) {
   cleanup(() => cleanupEvents.push(token));
 }
 
+export function rowCleanupTaskTwo({ cleanup }) {
+  const token = ++nextCleanupToken;
+  cleanup(() => cleanupEvents.push(token));
+}
+
 export function markHot(_event, element) {
   const identity = element.getAttribute('data-id');
   const signal = rowSignals.get(identity);
@@ -49,7 +54,8 @@ export function statefulRowRender(props) {
   const mark = useSignal('cold');
   rowSignals.set(props.registryId, mark);
   rowRenderCounts.set(props.registryId, (rowRenderCounts.get(props.registryId) ?? 0) + 1);
-  useVisibleTaskQrl(qrl(moduleUrl, 'rowCleanupTask'), { strategy: 'document-ready' });
+  const cleanupSymbol = props.registryId.endsWith('-two') ? 'rowCleanupTaskTwo' : 'rowCleanupTask';
+  useTaskQrl(qrl(moduleUrl, cleanupSymbol));
 
   return jsx('button', {
     'data-id': props.registryId,
