@@ -91,6 +91,7 @@ const output = await optimizer.transformModules({
 const errors = output.diagnostics.filter((diagnostic) => diagnostic.category === 'error' || diagnostic.category === 'sourceError');
 assert.deepEqual(errors, []);
 assert.equal(output.modules.length, 1);
+console.log(output.modules[0].code);
 
 const generatedPath = resolve(`.qwik-host-callback-group-probe-${process.pid}.mjs`);
 await writeFile(generatedPath, output.modules[0].code, 'utf8');
