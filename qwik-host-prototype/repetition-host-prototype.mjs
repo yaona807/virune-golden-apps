@@ -293,16 +293,19 @@ assertRow(nestedDOM.screen, 's:5:alpha/s:9:alpha-one', 'alpha-one-v2:1:hot');
 assert.equal(cleanupEvents.length, 5);
 
 // Removing one outer identity removes both of its current nested children exactly once.
+// Keep surviving props equal to the prior snapshot here to isolate deletion from a concurrent
+// survivor-prop update while still allocating a fresh transported value object.
 const nestedWithoutAlpha = makeNestedSnapshot([
-  ['s:4:beta', 'beta-v3', [
-    ['s:8:beta-one', 'beta-one-v3'],
+  ['s:4:beta', 'beta-v2', [
+    ['s:8:beta-one', 'beta-one-v2'],
   ]],
 ]);
+assert.notStrictEqual(nestedWithoutAlpha[0].value, nestedReordered[0].value);
 await replaceSnapshot('nested', nestedWithoutAlpha, nestedDOM.screen, nestedDOM.userEvent);
 diagnostic('nested delete complete');
 assert.equal(maybeByAttr(nestedDOM.screen, 'data-outer-id', 's:5:alpha'), undefined);
 assert.strictEqual(rowSignals.get('s:4:beta/s:8:beta-one'), betaOneState);
-assertRow(nestedDOM.screen, 's:4:beta/s:8:beta-one', 'beta-one-v3:0:cold');
+assertRow(nestedDOM.screen, 's:4:beta/s:8:beta-one', 'beta-one-v2:0:cold');
 assert.equal(cleanupEvents.length, 7);
 assert.equal(new Set(cleanupEvents).size, cleanupEvents.length);
 
