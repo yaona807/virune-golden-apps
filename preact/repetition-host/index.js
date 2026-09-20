@@ -1,6 +1,8 @@
 import { h } from 'preact';
 import { useCallback, useRef } from 'preact/hooks';
 
+let renderInvocationCount = 0;
+
 function validateSnapshot(snapshot) {
   const seen = new Set();
   for (const entry of snapshot) {
@@ -26,6 +28,11 @@ function RepetitionHostImpl({ readSnapshot, renderGroup }) {
   }));
 }
 
+export function readRenderInvocationCount() {
+  return renderInvocationCount;
+}
+
 export function render(readSnapshot, renderGroup) {
+  renderInvocationCount += 1;
   return h(RepetitionHostImpl, { readSnapshot, renderGroup });
 }

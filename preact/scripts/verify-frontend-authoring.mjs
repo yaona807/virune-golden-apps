@@ -7,6 +7,7 @@ import { JSDOM } from 'jsdom';
 import { h, render } from 'preact';
 import { Suspense } from 'preact/compat';
 import { act } from 'preact/test-utils';
+import { readRenderInvocationCount } from 'virune-media-jobs-preact-golden/repetition-host';
 
 const projectRoot = resolve('frontend-authoring');
 const emitted = resolve(projectRoot, 'dist/app.jsx');
@@ -67,7 +68,9 @@ try {
 	assert.equal(typeof frontend.App, 'function');
 	assert.equal(typeof frontend.EffectProbe, 'function');
 
+	const hostCallsBeforeDirectRender = readRenderInvocationCount();
 	const appVNode = frontend.App({ title: 'Jobs', ready: true });
+	assert.ok(readRenderInvocationCount() > hostCallsBeforeDirectRender);
 	assert.equal(appVNode.type, 'main');
 	const appChildren = Array.isArray(appVNode.props.children) ? appVNode.props.children : [appVNode.props.children];
 	const buttonVNode = appChildren.find(child => child && typeof child === 'object' && child.type === 'button');
@@ -78,9 +81,11 @@ try {
 	assert.ok(suspenseVNode);
 	assert.equal(suspenseVNode.props.fallback, 'Loading');
 
+	const hostCallsBeforeFrameworkRender = readRenderInvocationCount();
 	await act(() => {
 		render(h(frontend.App, { title: 'Jobs', ready: true }), root);
 	});
+	assert.ok(readRenderInvocationCount() > hostCallsBeforeFrameworkRender);
 	assert.deepEqual(lifecycle, ['golden:effect']);
 	const main = root.querySelector('main.page');
 	assert.ok(main);
