@@ -27,6 +27,8 @@ assert.match(emittedCode, /useEffect\(\$viruneProjectCallable\(installEffect,[^\
 assert.match(emittedCode, /return \$viruneProjectCallable\(\$result,/u);
 assert.doesNotMatch(emittedCode, /useEffect\(installEffect\)/u);
 assert.match(emittedCode, /<Suspense fallback=\{"Loading"\}>/u);
+assert.ok(emittedCode.includes('virune-media-jobs-preact-golden/repetition-host'));
+assert.ok(emittedCode.includes('["render"]'));
 assert.ok(emittedCode.endsWith('//# sourceMappingURL=app.jsx.map\n'));
 assert.equal(sourceMap.file, 'app.jsx');
 assert.ok(sourceMap.sources.some(source => source.endsWith('src/app.virune')));

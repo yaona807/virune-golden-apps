@@ -15,6 +15,13 @@
     "build:frontend-authoring": "virune build frontend-authoring",
     "golden:frontend-authoring": "node scripts/verify-frontend-authoring.mjs"
   },
+  "exports": {
+    "./repetition-host": {
+      "types": "./repetition-host/index.d.ts",
+      "import": "./repetition-host/index.js",
+      "default": "./repetition-host/index.js"
+    }
+  },
   "dependencies": {
     "jsdom": "30.0.1",
     "preact": "10.29.8"

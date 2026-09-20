@@ -1,6 +1,9 @@
 import js { Suspense } from "preact/compat"
 import js { useEffect } from "preact/hooks"
 
+@repetitionHost("render", 1)
+extern js "virune-media-jobs-preact-golden/repetition-host" {}
+
 type Cleanup = fn() -> Unit uses Console
 
 fn handle() -> Bool {
@@ -38,7 +41,6 @@ internal component Panel(title: String) uses JavaScript {
 }
 
 internal component App(title: String, ready: Bool) uses JavaScript {
-	let items = ["compile", "ship"]
 	return view {
 		main(class: "page", "data-kind": "jobs") {
 			h1() {
@@ -60,7 +62,7 @@ internal component App(title: String, ready: Bool) uses JavaScript {
 			}
 			Panel(title: "Queue") {
 				ul() {
-					for item, index in items {
+					for item, index in ["compile", "ship"] by item {
 						li("data-index": index) {
 							{ item }
 						}
