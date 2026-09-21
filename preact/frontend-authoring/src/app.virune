@@ -40,6 +40,18 @@ internal component Panel(title: String) uses JavaScript {
 	}
 }
 
+internal component DuplicateIdentityProbe() uses JavaScript {
+	return view {
+		ul() {
+			for item in ["duplicate", "duplicate"] by item {
+				li() {
+					{ item }
+				}
+			}
+		}
+	}
+}
+
 internal component App(title: String, ready: Bool) uses JavaScript {
 	return view {
 		main(class: "page", "data-kind": "jobs") {
