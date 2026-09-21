@@ -22,6 +22,8 @@ const sourceMap = JSON.parse(await readFile(emittedMap, 'utf8'));
 assert.match(emittedCode, /export function App\(\$props\)/u);
 assert.match(emittedCode, /export function Panel\(\$props\)/u);
 assert.match(emittedCode, /export function EffectProbe\(\$props\)/u);
+assert.match(emittedCode, /export function DuplicateIdentityProbe\(\$props\)/u);
+assert.match(emittedCode, /Duplicate View repetition identity/u);
 assert.match(emittedCode, /<button onClick=\{\$viruneProjectCallable\(handle,/u);
 assert.match(emittedCode, /useEffect\(\$viruneProjectCallable\(installEffect,/u);
 assert.match(emittedCode, /useEffect\(\$viruneProjectCallable\(installEffect,[^\n]*virune-callable-shim[^\n]*v3/u);
@@ -49,9 +51,11 @@ await build({
 	logLevel: 'silent',
 });
 
-const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>');
+const dom = new JSDOM('<!doctype html><html><body><div id="root"></div><div id="duplicate-root"></div></body></html>');
 const root = dom.window.document.getElementById('root');
+const duplicateRoot = dom.window.document.getElementById('duplicate-root');
 assert.ok(root);
+assert.ok(duplicateRoot);
 
 const lifecycle = [];
 const originalConsoleLog = console.log;
@@ -67,6 +71,15 @@ try {
 	const frontend = await import(pathToFileURL(transformed).href);
 	assert.equal(typeof frontend.App, 'function');
 	assert.equal(typeof frontend.EffectProbe, 'function');
+	assert.equal(typeof frontend.DuplicateIdentityProbe, 'function');
+
+	const duplicateHostCallsBefore = readRenderInvocationCount();
+	assert.throws(() => {
+		render(h(frontend.DuplicateIdentityProbe, {}), duplicateRoot);
+	}, /Duplicate View repetition identity/u);
+	assert.ok(readRenderInvocationCount() > duplicateHostCallsBefore);
+	assert.equal(duplicateRoot.childNodes.length, 0);
+	render(null, duplicateRoot);
 
 	const appVNode = frontend.App({ title: 'Jobs', ready: true });
 	assert.equal(appVNode.type, 'main');
@@ -109,6 +122,7 @@ try {
 	});
 	assert.deepEqual(lifecycle, ['golden:effect', 'golden:cleanup', 'golden:effect', 'golden:cleanup']);
 } finally {
+	render(null, duplicateRoot);
 	render(null, root);
 	console.log = originalConsoleLog;
 	dom.window.close();
