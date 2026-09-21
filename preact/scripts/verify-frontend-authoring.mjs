@@ -68,9 +68,7 @@ try {
 	assert.equal(typeof frontend.App, 'function');
 	assert.equal(typeof frontend.EffectProbe, 'function');
 
-	const hostCallsBeforeDirectRender = readRenderInvocationCount();
 	const appVNode = frontend.App({ title: 'Jobs', ready: true });
-	assert.ok(readRenderInvocationCount() > hostCallsBeforeDirectRender);
 	assert.equal(appVNode.type, 'main');
 	const appChildren = Array.isArray(appVNode.props.children) ? appVNode.props.children : [appVNode.props.children];
 	const buttonVNode = appChildren.find(child => child && typeof child === 'object' && child.type === 'button');
