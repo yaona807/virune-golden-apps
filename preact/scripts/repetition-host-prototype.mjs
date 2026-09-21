@@ -1,37 +1,9 @@
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import { Fragment, h, render } from 'preact';
-import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { act } from 'preact/test-utils';
-
-function validateSnapshot(snapshot) {
-  const seen = new Set();
-  for (const entry of snapshot) {
-    if (seen.has(entry.id)) throw new Error(`duplicate repetition identity: ${entry.id}`);
-    seen.add(entry.id);
-  }
-  return snapshot;
-}
-
-function RepetitionGroup({ entry, renderGroup }) {
-  const currentEntry = useRef(entry);
-  currentEntry.current = entry;
-  const readValue = useCallback(() => currentEntry.current.value, []);
-  const readIndex = useCallback(() => currentEntry.current.index, []);
-  return renderGroup(readValue, readIndex, entry.id);
-}
-
-function RepetitionHostImpl({ readSnapshot, renderGroup }) {
-  return validateSnapshot(readSnapshot()).map((entry) => h(RepetitionGroup, {
-    key: entry.id,
-    entry,
-    renderGroup,
-  }));
-}
-
-function repetitionHost(readSnapshot, renderGroup) {
-  return h(RepetitionHostImpl, { readSnapshot, renderGroup });
-}
+import { render as repetitionHost } from 'virune-media-jobs-preact-golden/repetition-host';
 
 function makeSnapshot(entries) {
   return entries.map(([id, label], index) => ({
@@ -138,23 +110,28 @@ function assertGroupedSiblingOrder(root, expected) {
   );
 }
 
-assert.throws(() => RepetitionHostImpl({
-  readSnapshot: () => makeSnapshot([
-    ['s:5:alpha', 'alpha'],
-    ['s:5:alpha', 'alpha-copy'],
-  ]),
-  renderGroup: renderStatefulGroup,
-}), /duplicate repetition identity: s:5:alpha/);
-assert.equal(renderCalls.size, 0);
-
-const dom = new JSDOM('<!doctype html><html><body><div id="root"></div><div id="nested-root"></div></body></html>');
+const dom = new JSDOM('<!doctype html><html><body><div id="root"></div><div id="nested-root"></div><div id="duplicate-root"></div></body></html>');
 const rootElement = dom.window.document.getElementById('root');
 const nestedRootElement = dom.window.document.getElementById('nested-root');
+const duplicateRootElement = dom.window.document.getElementById('duplicate-root');
 assert.ok(rootElement);
 assert.ok(nestedRootElement);
+assert.ok(duplicateRootElement);
 
 globalThis.window = dom.window;
 globalThis.document = dom.window.document;
+
+assert.throws(() => {
+  render(h(() => repetitionHost(
+    () => makeSnapshot([
+      ['s:5:alpha', 'alpha'],
+      ['s:5:alpha', 'alpha-copy'],
+    ]),
+    renderStatefulGroup,
+  )), duplicateRootElement);
+}, /duplicate repetition identity: s:5:alpha/);
+assert.equal(renderCalls.size, 0);
+render(null, duplicateRootElement);
 
 let rootMounted = false;
 let nestedMounted = false;
