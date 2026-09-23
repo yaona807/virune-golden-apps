@@ -1,6 +1,6 @@
 import js * as React from "react"
 import js { MemoryRouter, useLocation, useNavigate } from "react-router"
-import js useSWR from "swr"
+import js useAsync from "use-async"
 
 type Cleanup = fn() -> Unit uses Console
 
@@ -57,45 +57,25 @@ async fn loadQuerySuccess() -> String uses Task {
 
 async fn loadQueryFailure() -> String uses Task {
 	await Task.sleep(Duration.milliseconds(40))
-	panic("intentional SWR query failure")
+	panic("intentional use-async query failure")
 }
 
 internal component QueryProbe() uses JavaScript, Task {
-	let errorState = React.useState(false)
-	let errorObserved = errorState[0]
-	let recordError = errorState[1]
-	let success = useSWR("virune:query:success", loadQuerySuccess, {
-		fallbackData: "query:waiting",
-	})
-	let failure = useSWR("virune:query:failure", loadQueryFailure, {
-		fallbackData: "query:waiting",
-		onError: fn() -> Unit uses JavaScript {
-			discard recordError(true)
-			return Unit
-		},
-		shouldRetryOnError: false,
-	})
+	let success = useAsync(loadQuerySuccess)
+	let failure = useAsync(loadQueryFailure)
 	return view {
 		section(className: "query-probe") {
-			if success.isLoading {
-				p(id: "query-success-pending") {
-					"loading"
-				}
+			p(id: "query-success-pending", "data-loading": success.loading) {
+				"loading"
 			}
-			if !success.isLoading {
-				p(id: "query-success-result") {
-					{ success.data }
-				}
+			p(id: "query-success-result", "data-loading": success.loading, "data-value": success.data) {
+				"success"
 			}
-			if failure.isLoading {
-				p(id: "query-failure-pending") {
-					"loading"
-				}
+			p(id: "query-failure-pending", "data-loading": failure.loading) {
+				"loading"
 			}
-			if errorObserved {
-				p(id: "query-failure-error") {
-					"error"
-				}
+			p(id: "query-failure-error", "data-loading": failure.loading, "data-error": failure.error?.message) {
+				"failure"
 			}
 		}
 	}

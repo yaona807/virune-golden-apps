@@ -16,7 +16,7 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-router": "8.4.0",
-    "swr": "2.5.1"
+    "use-async": "2.0.1"
   },
   "devDependencies": {
     "@types/jsdom": "30.0.0",
