@@ -97,7 +97,7 @@ globalThis.MouseEvent = dom.window.MouseEvent;
 const labels = () => [...root.querySelectorAll('#items > .row')].map(row => row.getAttribute('data-label'));
 let dispose;
 try {
-	const frontend = await import(`${pathToFileURL(browserBundle).href}?run=${Date.now()}`);
+	const frontend = await import(`${pathToFileURL(browserBundle).href}?run=contextual-view-callback`);
 	assert.equal(typeof frontend.mount, 'function');
 	dispose = frontend.mount(root);
 	assert.equal(typeof dispose, 'function');
