@@ -20,9 +20,13 @@ assert.match(emittedCode, /export function App\(\$props\)/u);
 assert.match(emittedCode, /export function EffectProbe\(\$props\)/u);
 assert.match(emittedCode, /export function RouteProbe\(\$props\)/u);
 assert.match(emittedCode, /export function RouterApp\(\$props\)/u);
+assert.match(emittedCode, /export function QueryProbe\(\$props\)/u);
+assert.match(emittedCode, /export function QueryApp\(\$props\)/u);
 assert.match(emittedCode, /from "react-router"/u);
 assert.match(emittedCode, /useLocation\(\)/u);
 assert.match(emittedCode, /useNavigate\(\)/u);
+assert.match(emittedCode, /from "@tanstack\/react-query"/u);
+assert.match(emittedCode, /useQuery\(/u);
 assert.match(emittedCode, /React\.useEffect\(\$viruneProjectCallable\(installEffect,/u);
 assert.match(emittedCode, /React\.useEffect\(\$viruneProjectCallable\(installEffect,[^\n]*virune-callable-shim[^\n]*v3/u);
 assert.match(emittedCode, /return \$viruneProjectCallable\(\$result,/u);
@@ -46,11 +50,13 @@ await build({
 	logLevel: 'silent',
 });
 
-const dom = new JSDOM('<!doctype html><html><body><div id="root"></div><div id="router-root"></div></body></html>');
+const dom = new JSDOM('<!doctype html><html><body><div id="root"></div><div id="router-root"></div><div id="query-root"></div></body></html>');
 const rootElement = dom.window.document.getElementById('root');
 const routerRootElement = dom.window.document.getElementById('router-root');
+const queryRootElement = dom.window.document.getElementById('query-root');
 assert.ok(rootElement);
 assert.ok(routerRootElement);
+assert.ok(queryRootElement);
 
 const lifecycle = [];
 const originalConsoleLog = console.log;
@@ -72,8 +78,10 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 let reactRoot;
 let routerRoot;
+let queryRoot;
 let unmounted = false;
 let routerUnmounted = false;
+let queryUnmounted = false;
 try {
 	const [{ createRoot }, frontend] = await Promise.all([
 		import('react-dom/client'),
@@ -81,6 +89,8 @@ try {
 	]);
 	assert.equal(typeof frontend.App, 'function');
 	assert.equal(typeof frontend.EffectProbe, 'function');
+assert.equal(typeof frontend.QueryProbe, 'function');
+assert.equal(typeof frontend.QueryApp, 'function');
 
 	reactRoot = createRoot(rootElement);
 	await act(async () => {
@@ -112,6 +122,36 @@ try {
 	});
 	assert.equal(routerRootElement.querySelector('.route-path')?.textContent, '/next');
 
+	queryRoot = createRoot(queryRootElement);
+	await act(async () => {
+		queryRoot.render(createElement(frontend.QueryApp));
+	});
+	assert.equal(queryRootElement.querySelector('#query-success-pending')?.textContent, 'loading');
+	assert.equal(queryRootElement.querySelector('#query-failure-pending')?.textContent, 'loading');
+	assert.equal(queryRootElement.querySelector('#query-success-result'), null);
+	assert.equal(queryRootElement.querySelector('#query-failure-error'), null);
+
+	const successFetchButton = queryRootElement.querySelector('#query-success-fetch');
+	assert.ok(successFetchButton);
+	await act(async () => {
+		successFetchButton.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+	});
+	assert.equal(queryRootElement.querySelector('#query-success-pending'), null);
+	assert.equal(queryRootElement.querySelector('#query-success-result')?.textContent, 'query:loaded');
+
+	const failureFetchButton = queryRootElement.querySelector('#query-failure-fetch');
+	assert.ok(failureFetchButton);
+	await act(async () => {
+		failureFetchButton.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+	});
+	assert.equal(queryRootElement.querySelector('#query-failure-pending'), null);
+	assert.equal(queryRootElement.querySelector('#query-failure-error')?.textContent, 'error');
+
+	await act(async () => {
+		queryRoot.unmount();
+	});
+	queryUnmounted = true;
+
 	await act(async () => {
 		routerRoot.unmount();
 	});
@@ -123,6 +163,11 @@ try {
 	unmounted = true;
 	assert.deepEqual(lifecycle, ['golden:react:effect', 'golden:react:cleanup', 'golden:react:effect', 'golden:react:cleanup']);
 } finally {
+	if (queryRoot !== undefined && !queryUnmounted) {
+		await act(async () => {
+			queryRoot.unmount();
+		});
+	}
 	if (routerRoot !== undefined && !routerUnmounted) {
 		await act(async () => {
 			routerRoot.unmount();
