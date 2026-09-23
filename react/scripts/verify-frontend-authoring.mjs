@@ -14,15 +14,6 @@ const transformedMap = `${transformed}.map`;
 const browserBundle = resolve(projectRoot, 'dist/app.browser.min.mjs');
 const browserBundleMap = `${browserBundle}.map`;
 
-const installedLockPath = resolve('node_modules/.package-lock.json');
-let installedLock;
-try {
-	installedLock = JSON.parse(await readFile(installedLockPath, 'utf8'));
-} catch {
-	installedLock = undefined;
-}
-console.log('diagnostic use-async integrity:', installedLock?.packages?.['node_modules/use-async']?.integrity ?? 'not found');
-
 const emittedCode = await readFile(emitted, 'utf8');
 const sourceMap = JSON.parse(await readFile(emittedMap, 'utf8'));
 assert.match(emittedCode, /export function App\(\$props\)/u);
@@ -30,9 +21,11 @@ assert.match(emittedCode, /export function EffectProbe\(\$props\)/u);
 assert.match(emittedCode, /export function RouteProbe\(\$props\)/u);
 assert.match(emittedCode, /export function RouterApp\(\$props\)/u);
 assert.match(emittedCode, /export function QueryProbe\(\$props\)/u);
+assert.match(emittedCode, /export function QueryApp\(\$props\)/u);
 assert.match(emittedCode, /from "react-router"/u);
-assert.match(emittedCode, /from "use-async"/u);
-assert.match(emittedCode, /useAsync\(/u);
+assert.match(emittedCode, /from "@tanstack\/react-query"/u);
+assert.match(emittedCode, /useQuery\(/u);
+assert.match(emittedCode, /React\.Children\.toArray\(/u);
 assert.match(emittedCode, /useLocation\(\)/u);
 assert.match(emittedCode, /useNavigate\(\)/u);
 assert.match(emittedCode, /React\.useEffect\(\$viruneProjectCallable\(installEffect,/u);
@@ -134,28 +127,30 @@ assert.equal(typeof frontend.QueryProbe, 'function');
 		queryRoot.render(createElement(frontend.QueryProbe));
 	});
 	assert.equal(queryRootElement.querySelector('#query-success-pending')?.textContent, 'loading');
-	assert.equal(queryRootElement.querySelector('#query-success-result'), null);
+	assert.equal(queryRootElement.querySelector('#query-success-result')?.getAttribute('data-value'), 'query:waiting');
 	assert.equal(queryRootElement.querySelector('#query-failure-pending')?.textContent, 'loading');
 	assert.equal(queryRootElement.querySelector('#query-failure-error'), null);
 
-	async function waitForQueryElement(selector) {
+	async function waitForQueryState(predicate, description) {
 		const deadline = Date.now() + 3000;
-		while (queryRootElement.querySelector(selector) === null) {
-			assert.ok(Date.now() < deadline, `timed out waiting for ${selector}`);
+		while (!predicate()) {
+			assert.ok(Date.now() < deadline, `timed out waiting for ${description}`);
 			await act(async () => {
 				await new Promise(resolve => setTimeout(resolve, 10));
 			});
 		}
-		return queryRootElement.querySelector(selector);
 	}
 
-	const successResult = await waitForQueryElement('#query-success-result');
-	assert.equal(successResult?.textContent, 'success');
-	assert.equal(successResult?.getAttribute('data-value'), 'query:loaded');
+	await waitForQueryState(
+		() => queryRootElement.querySelector('#query-success-result')?.getAttribute('data-value') === 'query:loaded',
+		'success data',
+	);
 	assert.equal(queryRootElement.querySelector('#query-success-pending'), null);
-	const failureError = await waitForQueryElement('#query-failure-error');
-	assert.equal(failureError?.textContent, 'failure');
-	assert.ok(failureError?.getAttribute('data-error'));
+	await waitForQueryState(
+		() => queryRootElement.querySelector('#query-failure-error') !== null,
+		'rejected error state',
+	);
+	assert.equal(queryRootElement.querySelector('#query-failure-error')?.textContent, 'error');
 	assert.equal(queryRootElement.querySelector('#query-failure-pending'), null);
 
 	await act(async () => {
@@ -228,8 +223,10 @@ for (const output of Object.values(browserBuild.metafile.outputs)) {
 			entry.path.startsWith('react/') ||
 			entry.path === 'react-router' ||
 			entry.path.startsWith('react-router/') ||
-			entry.path === 'use-async' ||
-			entry.path.startsWith('use-async/')
+			entry.path === '@tanstack/react-query' ||
+			entry.path.startsWith('@tanstack/react-query/') ||
+			entry.path === '@tanstack/query-core' ||
+			entry.path.startsWith('@tanstack/query-core/')
 		)),
 		false,
 	);

@@ -1,6 +1,6 @@
 import js * as React from "react"
 import js { MemoryRouter, useLocation, useNavigate } from "react-router"
-import js useAsync from "use-async"
+import js { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query"
 
 type Cleanup = fn() -> Unit uses Console
 
@@ -51,43 +51,70 @@ internal component RouterApp() uses JavaScript {
 
 
 async fn loadQuerySuccess() -> String uses Task {
-	await Task.sleep(Duration.milliseconds(40))
+	await Task.sleep(Duration.milliseconds(80))
 	return "query:loaded"
 }
 
 async fn loadQueryFailure() -> String uses Task {
-	await Task.sleep(Duration.milliseconds(40))
-	panic("intentional use-async query failure")
+	await Task.sleep(Duration.milliseconds(80))
+	panic("intentional React Query failure")
 }
 
 internal component QueryProbe() uses JavaScript, Task {
-	let success = useAsync(loadQuerySuccess)
-	let failure = useAsync(loadQueryFailure)
-	let successLoading: Bool = success.loading
-	let failureLoading: Bool = failure.loading
+	let successKey = React.Children.toArray("virune:query:success")
+	let failureKey = React.Children.toArray("virune:query:failure")
+	let success = useQuery({
+		queryKey: successKey,
+		queryFn: loadQuerySuccess,
+		initialData: "query:waiting",
+		retry: false,
+	})
+	let failure = useQuery({
+		queryKey: failureKey,
+		queryFn: loadQueryFailure,
+		initialData: "query:waiting",
+		retry: false,
+	})
+	let successFetching: Bool = success.isFetching
+	let failureFetching: Bool = failure.isFetching
+	let failureHasError: Bool = failure.isError
+	let successData: String = success.data
 	return view {
 		section(className: "query-probe") {
-			if successLoading {
+			if successFetching {
 				p(id: "query-success-pending") {
 					"loading"
 				}
 			}
-			if !successLoading {
-				let successData: String = success.data
-				p(id: "query-success-result", "data-value": successData) {
-					"success"
-				}
+			p(id: "query-success-result", "data-value": successData) {
+				"success"
 			}
-			if failureLoading {
+			if failureFetching {
 				p(id: "query-failure-pending") {
 					"loading"
 				}
 			}
-			if !failureLoading {
-				p(id: "query-failure-error", "data-error": failure.error) {
-					"failure"
+			if failureHasError {
+				p(id: "query-failure-error") {
+					"error"
 				}
 			}
+		}
+	}
+}
+
+internal component QueryApp() uses JavaScript {
+	let client = QueryClient({
+		defaultOptions: {
+			queries: {
+				retry: false,
+				gcTime: 0,
+			},
+		},
+	})
+	return view {
+		QueryClientProvider(client: client) {
+			QueryProbe()
 		}
 	}
 }
