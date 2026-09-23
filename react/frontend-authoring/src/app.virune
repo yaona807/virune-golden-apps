@@ -73,7 +73,8 @@ internal component QueryProbe() uses JavaScript, Task {
 				}
 			}
 			if !successLoading {
-				p(id: "query-success-result", "data-value": success.data) {
+				let successData: String = success.data
+				p(id: "query-success-result", "data-value": successData) {
 					"success"
 				}
 			}
