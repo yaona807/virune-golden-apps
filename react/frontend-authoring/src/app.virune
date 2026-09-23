@@ -74,7 +74,7 @@ internal component QueryProbe() uses JavaScript, Task {
 			p(id: "query-failure-pending", "data-loading": failure.loading) {
 				"loading"
 			}
-			p(id: "query-failure-error", "data-loading": failure.loading, "data-error": failure.error?.message) {
+			p(id: "query-failure-error", "data-loading": failure.loading, "data-error": failure.error) {
 				"failure"
 			}
 		}

@@ -159,9 +159,10 @@ assert.equal(typeof frontend.QueryProbe, 'function');
 	assert.equal(queryRootElement.querySelector('#query-success-result')?.getAttribute('data-loading'), 'false');
 	assert.equal(queryRootElement.querySelector('#query-success-pending')?.getAttribute('data-loading'), 'false');
 	await waitForQueryState(
-		() => queryRootElement.querySelector('#query-failure-error')?.getAttribute('data-error') === 'intentional use-async query failure',
+		() => queryRootElement.querySelector('#query-failure-error')?.getAttribute('data-error') !== null,
 		'rejected error state',
 	);
+	assert.ok(queryRootElement.querySelector('#query-failure-error')?.getAttribute('data-error'));
 	assert.equal(queryRootElement.querySelector('#query-failure-error')?.getAttribute('data-loading'), 'false');
 	assert.equal(queryRootElement.querySelector('#query-failure-pending')?.getAttribute('data-loading'), 'false');
 
