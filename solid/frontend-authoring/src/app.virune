@@ -1,0 +1,25 @@
+import js { For, createSignal } from "solid-js"
+import js { baseItems, updatedItems } from "./items.js"
+
+internal component App() uses JavaScript {
+	let state = createSignal(baseItems)
+	let items = state[0]
+	let setItems = state[1]
+	return view {
+		main(class: "solid-page") {
+			button(id: "update", onClick: fn() -> Unit uses JavaScript {
+				discard setItems(updatedItems)
+				return Unit
+			}) {
+				"update"
+			}
+			ul(id: "items") {
+				For(each: items(), children: fn(item) uses JavaScript => view {
+					li(class: "row", "data-label": item.label) {
+						{ item.label }
+					}
+				})
+			}
+		}
+	}
+}
