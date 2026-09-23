@@ -103,13 +103,15 @@ internal component QueryProbe() uses JavaScript, Task {
 	}
 }
 
-internal component QueryApp() uses JavaScript {
+internal component QueryApp() uses JavaScript, Task {
 	let client = QueryClient()
-	return view {
-		QueryClientProvider(client: client) {
-			QueryProbe()
-		}
+	let queryChild = view {
+		QueryProbe()
 	}
+	return QueryClientProvider({
+		client: client,
+		children: queryChild,
+	})
 }
 
 internal component App(title: String, ready: Bool) uses JavaScript {
