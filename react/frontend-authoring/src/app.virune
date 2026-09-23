@@ -63,19 +63,29 @@ async fn loadQueryFailure() -> String uses Task {
 internal component QueryProbe() uses JavaScript, Task {
 	let success = useAsync(loadQuerySuccess)
 	let failure = useAsync(loadQueryFailure)
+	let successLoading: Bool = success.loading
+	let failureLoading: Bool = failure.loading
 	return view {
 		section(className: "query-probe") {
-			p(id: "query-success-pending", "data-loading": success.loading) {
-				"loading"
+			if successLoading {
+				p(id: "query-success-pending") {
+					"loading"
+				}
 			}
-			p(id: "query-success-result", "data-loading": success.loading, "data-value": success.data) {
-				"success"
+			if !successLoading {
+				p(id: "query-success-result", "data-value": success.data) {
+					"success"
+				}
 			}
-			p(id: "query-failure-pending", "data-loading": failure.loading) {
-				"loading"
+			if failureLoading {
+				p(id: "query-failure-pending") {
+					"loading"
+				}
 			}
-			p(id: "query-failure-error", "data-loading": failure.loading, "data-error": failure.error) {
-				"failure"
+			if !failureLoading {
+				p(id: "query-failure-error", "data-error": failure.error) {
+					"failure"
+				}
 			}
 		}
 	}

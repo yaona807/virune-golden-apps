@@ -134,37 +134,29 @@ assert.equal(typeof frontend.QueryProbe, 'function');
 		queryRoot.render(createElement(frontend.QueryProbe));
 	});
 	assert.equal(queryRootElement.querySelector('#query-success-pending')?.textContent, 'loading');
-	assert.equal(queryRootElement.querySelector('#query-success-pending')?.getAttribute('data-loading'), 'true');
+	assert.equal(queryRootElement.querySelector('#query-success-result'), null);
 	assert.equal(queryRootElement.querySelector('#query-failure-pending')?.textContent, 'loading');
-	assert.equal(queryRootElement.querySelector('#query-failure-pending')?.getAttribute('data-loading'), 'true');
-	assert.equal(queryRootElement.querySelector('#query-success-result')?.getAttribute('data-loading'), 'true');
-	assert.equal(queryRootElement.querySelector('#query-success-result')?.getAttribute('data-value'), null);
-	assert.equal(queryRootElement.querySelector('#query-failure-error')?.getAttribute('data-loading'), 'true');
-	assert.equal(queryRootElement.querySelector('#query-failure-error')?.getAttribute('data-error'), null);
+	assert.equal(queryRootElement.querySelector('#query-failure-error'), null);
 
-	async function waitForQueryState(predicate, description) {
+	async function waitForQueryElement(selector) {
 		const deadline = Date.now() + 3000;
-		while (!predicate()) {
-			assert.ok(Date.now() < deadline, `timed out waiting for ${description}`);
+		while (queryRootElement.querySelector(selector) === null) {
+			assert.ok(Date.now() < deadline, `timed out waiting for ${selector}`);
 			await act(async () => {
 				await new Promise(resolve => setTimeout(resolve, 10));
 			});
 		}
+		return queryRootElement.querySelector(selector);
 	}
 
-	await waitForQueryState(
-		() => queryRootElement.querySelector('#query-success-result')?.getAttribute('data-value') === 'query:loaded',
-		'success data',
-	);
-	assert.equal(queryRootElement.querySelector('#query-success-result')?.getAttribute('data-loading'), 'false');
-	assert.equal(queryRootElement.querySelector('#query-success-pending')?.getAttribute('data-loading'), 'false');
-	await waitForQueryState(
-		() => queryRootElement.querySelector('#query-failure-error')?.getAttribute('data-error') !== null,
-		'rejected error state',
-	);
-	assert.ok(queryRootElement.querySelector('#query-failure-error')?.getAttribute('data-error'));
-	assert.equal(queryRootElement.querySelector('#query-failure-error')?.getAttribute('data-loading'), 'false');
-	assert.equal(queryRootElement.querySelector('#query-failure-pending')?.getAttribute('data-loading'), 'false');
+	const successResult = await waitForQueryElement('#query-success-result');
+	assert.equal(successResult?.textContent, 'success');
+	assert.equal(successResult?.getAttribute('data-value'), 'query:loaded');
+	assert.equal(queryRootElement.querySelector('#query-success-pending'), null);
+	const failureError = await waitForQueryElement('#query-failure-error');
+	assert.equal(failureError?.textContent, 'failure');
+	assert.ok(failureError?.getAttribute('data-error'));
+	assert.equal(queryRootElement.querySelector('#query-failure-pending'), null);
 
 	await act(async () => {
 		queryRoot.unmount();
