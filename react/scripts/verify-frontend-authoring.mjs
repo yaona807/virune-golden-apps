@@ -18,6 +18,11 @@ const emittedCode = await readFile(emitted, 'utf8');
 const sourceMap = JSON.parse(await readFile(emittedMap, 'utf8'));
 assert.match(emittedCode, /export function App\(\$props\)/u);
 assert.match(emittedCode, /export function EffectProbe\(\$props\)/u);
+assert.match(emittedCode, /export function RouteProbe\(\$props\)/u);
+assert.match(emittedCode, /export function RouterApp\(\$props\)/u);
+assert.match(emittedCode, /from "react-router"/u);
+assert.match(emittedCode, /useLocation\(\)/u);
+assert.match(emittedCode, /useNavigate\(\)/u);
 assert.match(emittedCode, /React\.useEffect\(\$viruneProjectCallable\(installEffect,/u);
 assert.match(emittedCode, /React\.useEffect\(\$viruneProjectCallable\(installEffect,[^\n]*virune-callable-shim[^\n]*v3/u);
 assert.match(emittedCode, /return \$viruneProjectCallable\(\$result,/u);
@@ -41,9 +46,11 @@ await build({
 	logLevel: 'silent',
 });
 
-const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>');
+const dom = new JSDOM('<!doctype html><html><body><div id="root"></div><div id="router-root"></div></body></html>');
 const rootElement = dom.window.document.getElementById('root');
+const routerRootElement = dom.window.document.getElementById('router-root');
 assert.ok(rootElement);
+assert.ok(routerRootElement);
 
 const lifecycle = [];
 const originalConsoleLog = console.log;
@@ -64,7 +71,9 @@ globalThis.HTMLElement = dom.window.HTMLElement;
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 let reactRoot;
+let routerRoot;
 let unmounted = false;
+let routerUnmounted = false;
 try {
 	const [{ createRoot }, frontend] = await Promise.all([
 		import('react-dom/client'),
@@ -91,12 +100,34 @@ try {
 	assert.deepEqual(lifecycle, ['golden:react:effect', 'golden:react:cleanup', 'golden:react:effect']);
 	assert.equal(rootElement.querySelector('.status'), null);
 
+	routerRoot = createRoot(routerRootElement);
+	await act(async () => {
+		routerRoot.render(createElement(frontend.RouterApp));
+	});
+	assert.equal(routerRootElement.querySelector('.route-path')?.textContent, '/');
+	const navigateButton = routerRootElement.querySelector('#navigate');
+	assert.ok(navigateButton);
+	await act(async () => {
+		navigateButton.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+	});
+	assert.equal(routerRootElement.querySelector('.route-path')?.textContent, '/next');
+
+	await act(async () => {
+		routerRoot.unmount();
+	});
+	routerUnmounted = true;
+
 	await act(async () => {
 		reactRoot.unmount();
 	});
 	unmounted = true;
 	assert.deepEqual(lifecycle, ['golden:react:effect', 'golden:react:cleanup', 'golden:react:effect', 'golden:react:cleanup']);
 } finally {
+	if (routerRoot !== undefined && !routerUnmounted) {
+		await act(async () => {
+			routerRoot.unmount();
+		});
+	}
 	if (reactRoot !== undefined && !unmounted) {
 		await act(async () => {
 			reactRoot.unmount();
@@ -136,7 +167,12 @@ assert.ok(browserCode.length > 0);
 assert.ok(browserSourceMap.sources.some(source => source.endsWith('src/app.virune')));
 for (const output of Object.values(browserBuild.metafile.outputs)) {
 	assert.equal(
-		output.imports.some(entry => entry.external && (entry.path === 'react' || entry.path.startsWith('react/'))),
+		output.imports.some(entry => entry.external && (
+			entry.path === 'react' ||
+			entry.path.startsWith('react/') ||
+			entry.path === 'react-router' ||
+			entry.path.startsWith('react-router/')
+		)),
 		false,
 	);
 }
