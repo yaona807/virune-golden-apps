@@ -12,11 +12,11 @@
     "golden:frontend-authoring": "node scripts/verify-frontend-authoring.mjs"
   },
   "dependencies": {
-    "@tanstack/react-query": "5.103.2",
     "jsdom": "30.0.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "react-router": "8.4.0"
+    "react-router": "8.4.0",
+    "swr": "2.5.1"
   },
   "devDependencies": {
     "@types/jsdom": "30.0.0",

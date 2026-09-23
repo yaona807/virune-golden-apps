@@ -21,12 +21,11 @@ assert.match(emittedCode, /export function EffectProbe\(\$props\)/u);
 assert.match(emittedCode, /export function RouteProbe\(\$props\)/u);
 assert.match(emittedCode, /export function RouterApp\(\$props\)/u);
 assert.match(emittedCode, /export function QueryProbe\(\$props\)/u);
-assert.match(emittedCode, /export function QueryApp\(\$props\)/u);
 assert.match(emittedCode, /from "react-router"/u);
+assert.match(emittedCode, /from "swr"/u);
+assert.match(emittedCode, /useSWR\(/u);
 assert.match(emittedCode, /useLocation\(\)/u);
 assert.match(emittedCode, /useNavigate\(\)/u);
-assert.match(emittedCode, /from "@tanstack\/react-query"/u);
-assert.match(emittedCode, /useQuery\(/u);
 assert.match(emittedCode, /React\.useEffect\(\$viruneProjectCallable\(installEffect,/u);
 assert.match(emittedCode, /React\.useEffect\(\$viruneProjectCallable\(installEffect,[^\n]*virune-callable-shim[^\n]*v3/u);
 assert.match(emittedCode, /return \$viruneProjectCallable\(\$result,/u);
@@ -90,7 +89,6 @@ try {
 	assert.equal(typeof frontend.App, 'function');
 	assert.equal(typeof frontend.EffectProbe, 'function');
 assert.equal(typeof frontend.QueryProbe, 'function');
-assert.equal(typeof frontend.QueryApp, 'function');
 
 	reactRoot = createRoot(rootElement);
 	await act(async () => {
@@ -124,28 +122,30 @@ assert.equal(typeof frontend.QueryApp, 'function');
 
 	queryRoot = createRoot(queryRootElement);
 	await act(async () => {
-		queryRoot.render(createElement(frontend.QueryApp));
+		queryRoot.render(createElement(frontend.QueryProbe));
 	});
 	assert.equal(queryRootElement.querySelector('#query-success-pending')?.textContent, 'loading');
 	assert.equal(queryRootElement.querySelector('#query-failure-pending')?.textContent, 'loading');
 	assert.equal(queryRootElement.querySelector('#query-success-result'), null);
 	assert.equal(queryRootElement.querySelector('#query-failure-error'), null);
 
-	const successFetchButton = queryRootElement.querySelector('#query-success-fetch');
-	assert.ok(successFetchButton);
-	await act(async () => {
-		successFetchButton.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
-	});
-	assert.equal(queryRootElement.querySelector('#query-success-pending'), null);
-	assert.equal(queryRootElement.querySelector('#query-success-result')?.textContent, 'query:loaded');
+	async function waitForQueryElement(selector) {
+		const deadline = Date.now() + 3000;
+		while (queryRootElement.querySelector(selector) === null) {
+			assert.ok(Date.now() < deadline, `timed out waiting for ${selector}`);
+			await act(async () => {
+				await new Promise(resolve => setTimeout(resolve, 10));
+			});
+		}
+		return queryRootElement.querySelector(selector);
+	}
 
-	const failureFetchButton = queryRootElement.querySelector('#query-failure-fetch');
-	assert.ok(failureFetchButton);
-	await act(async () => {
-		failureFetchButton.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
-	});
+	const successResult = await waitForQueryElement('#query-success-result');
+	assert.equal(successResult?.textContent, 'query:loaded');
+	assert.equal(queryRootElement.querySelector('#query-success-pending'), null);
+	const failureError = await waitForQueryElement('#query-failure-error');
+	assert.equal(failureError?.textContent, 'error');
 	assert.equal(queryRootElement.querySelector('#query-failure-pending'), null);
-	assert.equal(queryRootElement.querySelector('#query-failure-error')?.textContent, 'error');
 
 	await act(async () => {
 		queryRoot.unmount();
@@ -216,7 +216,9 @@ for (const output of Object.values(browserBuild.metafile.outputs)) {
 			entry.path === 'react' ||
 			entry.path.startsWith('react/') ||
 			entry.path === 'react-router' ||
-			entry.path.startsWith('react-router/')
+			entry.path.startsWith('react-router/') ||
+			entry.path === 'swr' ||
+			entry.path.startsWith('swr/')
 		)),
 		false,
 	);
