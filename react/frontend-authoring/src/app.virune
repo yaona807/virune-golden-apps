@@ -1,4 +1,5 @@
 import js * as React from "react"
+import js { MemoryRouter, useLocation, useNavigate } from "react-router"
 
 type Cleanup = fn() -> Unit uses Console
 
@@ -17,6 +18,32 @@ internal component EffectProbe() uses JavaScript, Console {
 	return view {
 		span(className: "effect-probe") {
 			"effect"
+		}
+	}
+}
+
+internal component RouteProbe() uses JavaScript {
+	let location = useLocation()
+	let navigate = useNavigate()
+	return view {
+		section(className: "route-probe") {
+			p(className: "route-path") {
+				{ location.pathname }
+			}
+			button(id: "navigate", onClick: fn() -> Unit uses JavaScript {
+				discard navigate("/next")
+				return Unit
+			}) {
+				"next"
+			}
+		}
+	}
+}
+
+internal component RouterApp() uses JavaScript {
+	return view {
+		MemoryRouter() {
+			RouteProbe()
 		}
 	}
 }
