@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
-import { readFile, rm, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { createServer } from 'node:http';
+import { copyFile, readFile, rm, writeFile } from 'node:fs/promises';
+import { basename, extname, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { transformAsync } from '@babel/core';
 import vueJsxPlugin from '@vue/babel-plugin-jsx';
 import { build } from 'esbuild';
 import { JSDOM } from 'jsdom';
+import { chromium } from 'playwright';
 
 const projectRoot = resolve('frontend-authoring');
 const source = await readFile(resolve(projectRoot, 'src/app.virune'), 'utf8');
@@ -15,7 +17,9 @@ const emittedCode = await readFile(emitted, 'utf8');
 const sourceMap = JSON.parse(await readFile(`${emitted}.map`, 'utf8'));
 const transformed = resolve(projectRoot, 'dist/app.transformed.mjs');
 const transformedMap = `${transformed}.map`;
-const browserBundle = resolve(projectRoot, 'dist/app.browser.min.mjs');
+const browserSource = resolve(projectRoot, 'browser');
+const browserOutput = resolve(projectRoot, 'dist/browser');
+const browserBundle = resolve(browserOutput, 'main.js');
 const browserBundleMap = `${browserBundle}.map`;
 
 assert.match(source, /import js \{ computed, KeepAlive, ref \} from "vue"/u);
@@ -47,20 +51,109 @@ await writeFile(transformed, `${babelResult.code}\n//# sourceMappingURL=app.tran
 await writeFile(transformedMap, `${JSON.stringify(babelResult.map)}\n`);
 assert.ok(babelResult.map.sources.some(item => item.endsWith('src/app.virune')));
 
-await rm(browserBundle, { force: true });
-await rm(browserBundleMap, { force: true });
+await rm(browserOutput, { recursive: true, force: true });
 const browserBuild = await build({
-	entryPoints: [transformed], outfile: browserBundle, bundle: true, format: 'esm',
+	entryPoints: [resolve(browserSource, 'main.js')], outdir: browserOutput,
+	entryNames: 'main', assetNames: 'assets/[name]-[hash]', bundle: true, format: 'esm',
 	platform: 'browser', target: 'es2022', sourcemap: 'external', minify: true,
-	metafile: true, logLevel: 'silent',
+	loader: { '.svg': 'file' }, metafile: true, logLevel: 'silent',
 });
+await copyFile(resolve(browserSource, 'index.html'), resolve(browserOutput, 'index.html'));
 const browserCode = await readFile(browserBundle, 'utf8');
 const browserMap = JSON.parse(await readFile(browserBundleMap, 'utf8'));
+const browserCss = await readFile(resolve(browserOutput, 'main.css'), 'utf8');
 assert.ok(browserCode.length > 0);
+assert.ok(browserCss.length > 0);
 assert.ok(browserMap.sources.some(item => item.endsWith('src/app.virune')));
 assert.ok(browserMap.sources.some(item => item.endsWith('state.js')));
 for (const output of Object.values(browserBuild.metafile.outputs)) {
 	assert.equal(output.imports.some(item => item.external), false);
+}
+
+const assetOutput = Object.keys(browserBuild.metafile.outputs).find(item => item.endsWith('.svg'));
+assert.ok(assetOutput, 'esbuild should emit the imported SVG asset');
+
+const contentTypes = new Map([
+	['.css', 'text/css; charset=utf-8'],
+	['.html', 'text/html; charset=utf-8'],
+	['.js', 'text/javascript; charset=utf-8'],
+	['.json', 'application/json; charset=utf-8'],
+	['.map', 'application/json; charset=utf-8'],
+	['.svg', 'image/svg+xml'],
+]);
+const server = createServer(async (request, response) => {
+	const pathname = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname);
+	const relativePath = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
+	const filePath = resolve(browserOutput, relativePath);
+	if (filePath !== browserOutput && !filePath.startsWith(`${browserOutput}${sep}`)) {
+		response.writeHead(403);
+		response.end();
+		return;
+	}
+	try {
+		const body = await readFile(filePath);
+		response.writeHead(200, {
+			'cache-control': 'no-store',
+			'content-type': contentTypes.get(extname(filePath)) ?? 'application/octet-stream',
+		});
+		response.end(body);
+	} catch {
+		response.writeHead(404);
+		response.end('Not found');
+	}
+});
+
+await new Promise((resolvePromise, reject) => {
+	server.once('error', reject);
+	server.listen(0, '127.0.0.1', resolvePromise);
+});
+
+let browser;
+try {
+	browser = await chromium.launch({ headless: true });
+	const page = await browser.newPage();
+	const pageErrors = [];
+	const receivedResponses = [];
+	page.on('pageerror', error => pageErrors.push(error.message));
+	page.on('response', response => receivedResponses.push(response));
+
+	const address = server.address();
+	assert.ok(address && typeof address === 'object');
+	const pageResponse = await page.goto(`http://127.0.0.1:${address.port}/`, { waitUntil: 'networkidle' });
+	assert.equal(pageResponse?.status(), 200);
+	await page.locator('main.vue-page').waitFor({ state: 'visible' });
+	assert.equal(await page.locator('p.vue-count').textContent(), 'before');
+
+	const style = await page.locator('main.vue-page').evaluate(element => ({
+		backgroundColor: getComputedStyle(element).backgroundColor,
+		color: getComputedStyle(element).color,
+	}));
+	assert.equal(style.color, 'rgb(14, 42, 70)');
+	assert.equal(style.backgroundColor, 'rgb(245, 248, 252)');
+
+	const logo = page.locator('#asset-probe');
+	await page.waitForFunction(() => {
+		const image = document.querySelector('#asset-probe');
+		return image?.complete && image.naturalWidth > 0;
+	});
+	assert.equal(await logo.getAttribute('alt'), 'Virune logo');
+
+	await page.locator('button.vue-increment').click();
+	await page.waitForFunction(() => document.querySelector('p.vue-count')?.textContent === 'after');
+	assert.equal(await page.locator('p.vue-count').getAttribute('data-value'), 'after');
+	assert.equal(await page.locator('output.vue-metric').textContent(), 'after');
+
+	const expectedAssetName = basename(assetOutput);
+	const assetResponse = receivedResponses.find(response => new URL(response.url()).pathname.endsWith(`/${expectedAssetName}`));
+	assert.ok(assetResponse, 'the emitted SVG asset should be fetched by the browser');
+	assert.equal(assetResponse.status(), 200);
+	assert.match(assetResponse.headers()['content-type'] ?? '', /^image\/svg\+xml/u);
+	assert.deepEqual(pageErrors, []);
+} finally {
+	await browser?.close();
+	await new Promise((resolvePromise, reject) => {
+		server.close(error => error ? reject(error) : resolvePromise());
+	});
 }
 
 const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://localhost/' });
