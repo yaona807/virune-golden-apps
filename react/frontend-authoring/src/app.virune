@@ -1,4 +1,5 @@
 import js * as React from "react"
+import js * as Switch from "@radix-ui/react-switch"
 import js { MemoryRouter, useLocation, useNavigate } from "react-router"
 import js { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query"
 
@@ -108,6 +109,32 @@ internal component QueryApp() uses JavaScript, Task {
 	return view {
 		QueryClientProvider(client: client) {
 			QueryProbe()
+		}
+	}
+}
+
+fn recordSwitchChange(checked: Bool) -> Unit uses Console {
+	if checked {
+		Console.print("golden:react:switch:checked")
+	} else {
+		Console.print("golden:react:switch:unchecked")
+	}
+	return Unit
+}
+
+internal component SwitchProbe() uses JavaScript, Console {
+	return view {
+		section(className: "switch-probe") {
+			Switch.Root(
+				id: "flight-mode",
+				"aria-label": "Airplane mode",
+				defaultChecked: false,
+				onCheckedChange: recordSwitchChange
+			) {
+				Switch.Thumb(id: "flight-mode-thumb") {
+					"thumb"
+				}
+			}
 		}
 	}
 }
