@@ -80,6 +80,7 @@ Object.defineProperty(globalThis, 'navigator', {
 });
 globalThis.Node = dom.window.Node;
 globalThis.HTMLElement = dom.window.HTMLElement;
+globalThis.HTMLFormElement = dom.window.HTMLFormElement;
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 let reactRoot;
@@ -236,6 +237,7 @@ assert.equal(typeof frontend.QueryProbe, 'function');
 	console.log = originalConsoleLog;
 	dom.window.close();
 	delete globalThis.IS_REACT_ACT_ENVIRONMENT;
+	delete globalThis.HTMLFormElement;
 	delete globalThis.HTMLElement;
 	delete globalThis.Node;
 	if (originalNavigatorDescriptor === undefined) delete globalThis.navigator;
