@@ -24,6 +24,7 @@ assert.match(emittedCode, /export function QueryProbe\(\$props\)/u);
 assert.match(emittedCode, /export function QueryApp\(\$props\)/u);
 assert.match(emittedCode, /from "react-router"/u);
 assert.match(emittedCode, /from "@tanstack\/react-query"/u);
+assert.ok(emittedCode.includes('<QueryClientProvider'));
 assert.match(emittedCode, /useQuery\(/u);
 assert.match(emittedCode, /React\.Children\.toArray\(/u);
 assert.match(emittedCode, /useLocation\(\)/u);
@@ -91,6 +92,7 @@ try {
 	assert.equal(typeof frontend.App, 'function');
 	assert.equal(typeof frontend.EffectProbe, 'function');
 assert.equal(typeof frontend.QueryProbe, 'function');
+	assert.equal(typeof frontend.QueryApp, 'function');
 
 	reactRoot = createRoot(rootElement);
 	await act(async () => {
@@ -124,7 +126,7 @@ assert.equal(typeof frontend.QueryProbe, 'function');
 
 	queryRoot = createRoot(queryRootElement);
 	await act(async () => {
-		queryRoot.render(createElement(frontend.QueryProbe));
+		queryRoot.render(createElement(frontend.QueryApp));
 	});
 	assert.equal(queryRootElement.querySelector('#query-success-pending')?.textContent, 'loading');
 	assert.equal(queryRootElement.querySelector('#query-success-result')?.getAttribute('data-value'), 'query:waiting');
