@@ -52,19 +52,23 @@ await build({
 	logLevel: 'silent',
 });
 
-const dom = new JSDOM('<!doctype html><html><body><div id="root"></div><div id="router-root"></div><div id="query-root"></div></body></html>');
+const dom = new JSDOM('<!doctype html><html><body><div id="root"></div><div id="router-root"></div><div id="query-root"></div><div id="switch-root"></div></body></html>');
 const rootElement = dom.window.document.getElementById('root');
 const routerRootElement = dom.window.document.getElementById('router-root');
 const queryRootElement = dom.window.document.getElementById('query-root');
+const switchRootElement = dom.window.document.getElementById('switch-root');
 assert.ok(rootElement);
 assert.ok(routerRootElement);
 assert.ok(queryRootElement);
+assert.ok(switchRootElement);
 
 const lifecycle = [];
+const switchChanges = [];
 const originalConsoleLog = console.log;
 const originalNavigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
 console.log = (...args) => {
 	if (args.length === 1 && (args[0] === 'golden:react:effect' || args[0] === 'golden:react:cleanup')) lifecycle.push(args[0]);
+	else if (args.length === 1 && (args[0] === 'golden:react:switch:checked' || args[0] === 'golden:react:switch:unchecked')) switchChanges.push(args[0]);
 	else originalConsoleLog(...args);
 };
 
@@ -76,12 +80,15 @@ Object.defineProperty(globalThis, 'navigator', {
 });
 globalThis.Node = dom.window.Node;
 globalThis.HTMLElement = dom.window.HTMLElement;
+globalThis.HTMLFormElement = dom.window.HTMLFormElement;
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 let reactRoot;
 let routerRoot;
 let queryRoot;
+let switchRoot;
 let unmounted = false;
+let switchUnmounted = false;
 let routerUnmounted = false;
 let queryUnmounted = false;
 try {
@@ -93,6 +100,11 @@ try {
 	assert.equal(typeof frontend.EffectProbe, 'function');
 assert.equal(typeof frontend.QueryProbe, 'function');
 	assert.equal(typeof frontend.QueryApp, 'function');
+	assert.equal(typeof frontend.SwitchProbe, 'function');
+	assert.match(emittedCode, /from "@radix-ui\/react-switch"/u);
+	assert.ok(emittedCode.includes('<Switch.Root'));
+	assert.ok(emittedCode.includes('<Switch.Thumb'));
+	assert.match(emittedCode, /\$viruneProjectCallable\(recordSwitchChange,/u);
 
 	reactRoot = createRoot(rootElement);
 	await act(async () => {
@@ -154,6 +166,37 @@ assert.equal(typeof frontend.QueryProbe, 'function');
 	);
 	assert.equal(queryRootElement.querySelector('#query-failure-error')?.textContent, 'error');
 	assert.equal(queryRootElement.querySelector('#query-failure-pending'), null);
+	switchRoot = createRoot(switchRootElement);
+	await act(async () => {
+		switchRoot.render(createElement(frontend.SwitchProbe));
+	});
+	const switchControl = switchRootElement.querySelector('#flight-mode[role="switch"]');
+	const switchThumb = switchRootElement.querySelector('#flight-mode-thumb');
+	assert.ok(switchControl);
+	assert.ok(switchThumb);
+	assert.equal(switchControl.getAttribute('aria-label'), 'Airplane mode');
+	assert.equal(switchControl.getAttribute('aria-checked'), 'false');
+	assert.equal(switchControl.getAttribute('data-state'), 'unchecked');
+	assert.equal(switchThumb.getAttribute('data-state'), 'unchecked');
+	assert.equal(switchThumb.textContent, 'thumb');
+	assert.deepEqual(switchChanges, []);
+
+	await act(async () => {
+		switchControl.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true }));
+	});
+	const updatedSwitchControl = switchRootElement.querySelector('#flight-mode[role="switch"]');
+	const updatedSwitchThumb = switchRootElement.querySelector('#flight-mode-thumb');
+	assert.ok(updatedSwitchControl);
+	assert.ok(updatedSwitchThumb);
+	assert.equal(updatedSwitchControl.getAttribute('aria-checked'), 'true');
+	assert.equal(updatedSwitchControl.getAttribute('data-state'), 'checked');
+	assert.equal(updatedSwitchThumb.getAttribute('data-state'), 'checked');
+	assert.deepEqual(switchChanges, ['golden:react:switch:checked']);
+
+	await act(async () => {
+		switchRoot.unmount();
+	});
+	switchUnmounted = true;
 
 	await act(async () => {
 		queryRoot.unmount();
@@ -171,6 +214,11 @@ assert.equal(typeof frontend.QueryProbe, 'function');
 	unmounted = true;
 	assert.deepEqual(lifecycle, ['golden:react:effect', 'golden:react:cleanup', 'golden:react:effect', 'golden:react:cleanup']);
 } finally {
+	if (switchRoot !== undefined && !switchUnmounted) {
+		await act(async () => {
+			switchRoot.unmount();
+		});
+	}
 	if (queryRoot !== undefined && !queryUnmounted) {
 		await act(async () => {
 			queryRoot.unmount();
@@ -189,6 +237,7 @@ assert.equal(typeof frontend.QueryProbe, 'function');
 	console.log = originalConsoleLog;
 	dom.window.close();
 	delete globalThis.IS_REACT_ACT_ENVIRONMENT;
+	delete globalThis.HTMLFormElement;
 	delete globalThis.HTMLElement;
 	delete globalThis.Node;
 	if (originalNavigatorDescriptor === undefined) delete globalThis.navigator;
@@ -228,7 +277,8 @@ for (const output of Object.values(browserBuild.metafile.outputs)) {
 			entry.path === '@tanstack/react-query' ||
 			entry.path.startsWith('@tanstack/react-query/') ||
 			entry.path === '@tanstack/query-core' ||
-			entry.path.startsWith('@tanstack/query-core/')
+			entry.path.startsWith('@tanstack/query-core/') ||
+			entry.path.startsWith('@radix-ui/')
 		)),
 		false,
 	);
