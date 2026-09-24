@@ -273,3 +273,6 @@ jobs:
       - name: Run Vue JSX frontend authoring scenario
         working-directory: vue
         run: npm run golden:frontend-authoring
+      - name: Run Vue JSX development watch and HMR browser consumer
+        working-directory: vue
+        run: npm run golden:dev-workflow
