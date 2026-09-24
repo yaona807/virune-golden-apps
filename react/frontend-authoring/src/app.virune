@@ -1,5 +1,6 @@
 import js * as React from "react"
 import js { MemoryRouter, useLocation, useNavigate } from "react-router"
+import js { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query"
 
 type Cleanup = fn() -> Unit uses Console
 
@@ -44,6 +45,69 @@ internal component RouterApp() uses JavaScript {
 	return view {
 		MemoryRouter() {
 			RouteProbe()
+		}
+	}
+}
+
+
+async fn loadQuerySuccess() -> String uses Task {
+	await Task.sleep(Duration.milliseconds(80))
+	return "query:loaded"
+}
+
+async fn loadQueryFailure() -> String uses Task {
+	await Task.sleep(Duration.milliseconds(80))
+	panic("intentional React Query failure")
+}
+
+internal component QueryProbe() uses JavaScript, Task {
+	let successKey = React.Children.toArray("virune:query:success")
+	let failureKey = React.Children.toArray("virune:query:failure")
+	let success = useQuery({
+		queryKey: successKey,
+		queryFn: loadQuerySuccess,
+		initialData: "query:waiting",
+		retry: false,
+	})
+	let failure = useQuery({
+		queryKey: failureKey,
+		queryFn: loadQueryFailure,
+		initialData: "query:waiting",
+		retry: false,
+	})
+	let successFetching: Bool = success.isFetching
+	let failureFetching: Bool = failure.isFetching
+	let failureHasError: Bool = failure.isError
+	let successData: String = success.data
+	return view {
+		section(className: "query-probe") {
+			if successFetching {
+				p(id: "query-success-pending") {
+					"loading"
+				}
+			}
+			p(id: "query-success-result", "data-value": successData) {
+				"success"
+			}
+			if failureFetching {
+				p(id: "query-failure-pending") {
+					"loading"
+				}
+			}
+			if failureHasError {
+				p(id: "query-failure-error") {
+					"error"
+				}
+			}
+		}
+	}
+}
+
+internal component QueryApp() uses JavaScript, Task {
+	let client = QueryClient()
+	return view {
+		QueryClientProvider(client: client) {
+			QueryProbe()
 		}
 	}
 }
