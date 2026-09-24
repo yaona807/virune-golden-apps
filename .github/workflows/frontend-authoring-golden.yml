@@ -254,6 +254,9 @@ jobs:
       - name: Install exact Virune six-package consumer surface
         working-directory: vue
         run: node ../scripts/install-candidate.mjs ../.candidate/virune-release
+      - name: Install Chromium for the Vue browser consumer
+        working-directory: vue
+        run: npx playwright install --with-deps chromium
       - name: Assert consumer-only workspace
         shell: bash
         run: |

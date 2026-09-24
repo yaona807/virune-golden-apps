@@ -1,0 +1,14 @@
+body {
+	margin: 0;
+	font-family: sans-serif;
+}
+
+.vue-page {
+	color: rgb(14, 42, 70);
+	background-color: rgb(245, 248, 252);
+}
+
+#asset-probe {
+	width: 24px;
+	height: 24px;
+}
