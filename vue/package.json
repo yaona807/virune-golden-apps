@@ -7,9 +7,11 @@
 		"node": ">=24.11.0"
 	},
 	"scripts": {
+		"dev:frontend-authoring": "node scripts/dev-frontend-authoring.mjs",
 		"check:frontend-authoring": "virune check frontend-authoring",
 		"build:frontend-authoring": "virune build frontend-authoring",
-		"golden:frontend-authoring": "node scripts/verify-frontend-authoring.mjs"
+		"golden:frontend-authoring": "node scripts/verify-frontend-authoring.mjs",
+		"golden:dev-workflow": "node scripts/verify-dev-workflow.mjs"
 	},
 	"dependencies": {
 		"jsdom": "30.0.1",
@@ -18,9 +20,11 @@
 	"devDependencies": {
 		"@babel/core": "8.0.6",
 		"@types/jsdom": "30.0.0",
+		"@vitejs/plugin-vue-jsx": "5.1.6",
 		"@vue/babel-plugin-jsx": "3.0.0",
 		"esbuild": "0.28.2",
-		"playwright": "1.62.1"
+		"playwright": "1.62.1",
+		"vite": "8.3.1"
 	},
 	"license": "Apache-2.0"
 }
