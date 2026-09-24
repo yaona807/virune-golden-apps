@@ -1,0 +1,38 @@
+import js { computed, KeepAlive, ref } from "vue"
+import js { state } from "./state.js"
+
+internal component Metric(value: String) uses JavaScript {
+	return view {
+		output("class": "vue-metric", "data-value": value) {
+			{ value }
+		}
+	}
+}
+
+internal component App() uses JavaScript {
+	let viewState = ref(state.value)
+	let label = computed(fn() -> String uses JavaScript {
+		return viewState.value
+	})
+	let readLabel = fn() -> String uses JavaScript {
+		return label.value
+	}
+	let current = readLabel()
+	return view {
+		main("class": "vue-page", "data-framework": "vue") {
+			p("class": "vue-count", "data-value": current) {
+				{ current }
+			}
+			KeepAlive() {
+				Metric(value: current)
+			}
+			button("class": "vue-increment", onClick: fn() -> Unit uses JavaScript {
+				viewState.value = "after"
+				state.value = "after"
+				return Unit
+			}) {
+				"update"
+			}
+		}
+	}
+}

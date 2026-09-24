@@ -1,0 +1,25 @@
+{
+	"name": "virune-vue-jsx-frontend-golden",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"engines": {
+		"node": ">=24.11.0"
+	},
+	"scripts": {
+		"check:frontend-authoring": "virune check frontend-authoring",
+		"build:frontend-authoring": "virune build frontend-authoring",
+		"golden:frontend-authoring": "node scripts/verify-frontend-authoring.mjs"
+	},
+	"dependencies": {
+		"jsdom": "30.0.1",
+		"vue": "3.5.43"
+	},
+	"devDependencies": {
+		"@babel/core": "8.0.6",
+		"@types/jsdom": "30.0.0",
+		"@vue/babel-plugin-jsx": "3.0.0",
+		"esbuild": "0.28.2"
+	},
+	"license": "Apache-2.0"
+}
