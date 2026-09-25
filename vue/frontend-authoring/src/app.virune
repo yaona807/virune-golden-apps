@@ -29,7 +29,6 @@ internal component App() uses JavaScript {
 			button("class": "vue-increment", onClick: fn() -> Unit uses JavaScript {
 				viewState.value = "after"
 				state.value = "after"
-				return Unit
 			}) {
 				"update"
 			}
