@@ -12,7 +12,6 @@ fn handle() -> Bool {
 
 fn cleanupEffect() -> Unit uses Console {
 	Console.print("golden:cleanup")
-	return Unit
 }
 
 fn installEffect() -> Cleanup uses Console {

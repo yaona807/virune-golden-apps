@@ -9,7 +9,6 @@ internal component App() uses JavaScript {
 		main(class: "solid-page") {
 			button(id: "update", onClick: fn() -> Unit uses JavaScript {
 				discard setItems(updatedItems)
-				return Unit
 			}) {
 				"update"
 			}

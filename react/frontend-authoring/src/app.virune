@@ -7,7 +7,6 @@ type Cleanup = fn() -> Unit uses Console
 
 fn cleanupEffect() -> Unit uses Console {
 	Console.print("golden:react:cleanup")
-	return Unit
 }
 
 fn installEffect() -> Cleanup uses Console {
@@ -34,7 +33,6 @@ internal component RouteProbe() uses JavaScript {
 			}
 			button(id: "navigate", onClick: fn() -> Unit uses JavaScript {
 				discard navigate("/next")
-				return Unit
 			}) {
 				"next"
 			}
@@ -76,9 +74,9 @@ internal component QueryProbe() uses JavaScript, Task {
 		initialData: "query:waiting",
 		retry: false,
 	})
-	let successFetching: Bool = success.isFetching
-	let failureFetching: Bool = failure.isFetching
-	let failureHasError: Bool = failure.isError
+	let successFetching = success.isFetching
+	let failureFetching = failure.isFetching
+	let failureHasError = failure.isError
 	let successData: String = success.data
 	return view {
 		section(className: "query-probe") {
@@ -119,7 +117,6 @@ fn recordSwitchChange(checked: Bool) -> Unit uses Console {
 	} else {
 		Console.print("golden:react:switch:unchecked")
 	}
-	return Unit
 }
 
 internal component SwitchProbe() uses JavaScript, Console {
