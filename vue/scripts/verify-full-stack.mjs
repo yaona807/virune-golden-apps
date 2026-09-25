@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
-import { chdir, cwd } from 'node:process';
-import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { transformAsync } from '@babel/core';
 import vueJsxPlugin from '@vue/babel-plugin-jsx';
@@ -72,12 +70,11 @@ assert.ok(bundleMap.sources.some(item => item.endsWith('src/app.virune')));
 assert.ok(outputs.some(output => output.entryPoint?.endsWith('/browser/main.js')));
 assert.equal(outputs.some(output => output.imports.some(item => item.external)), false);
 
-const temporaryDirectory = await mkdtemp(join(tmpdir(), 'virune-full-stack-'));
+const databasePath = resolve('multi-layer-full-stack.sqlite');
+await rm(databasePath, { force: true });
 let server;
 let browser;
-const previousWorkingDirectory = cwd();
 try {
-	chdir(temporaryDirectory);
 	server = await startFullStackServer();
 	browser = await chromium.launch({ headless: true });
 	const page = await browser.newPage();
@@ -137,8 +134,7 @@ try {
 } finally {
 	await browser?.close();
 	await server?.close();
-	chdir(previousWorkingDirectory);
-	await rm(temporaryDirectory, { recursive: true, force: true });
+	await rm(databasePath, { force: true });
 }
 
 const finalMap = await readFile(resolve(browserOutput, 'main.js.map'), 'utf8');
