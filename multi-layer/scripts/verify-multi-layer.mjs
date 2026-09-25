@@ -49,8 +49,8 @@ assert.equal(projectionHelpers, 1, `expected one callable projection helper, got
 const projectionCallCount = projectionOccurrences - projectionHelpers;
 assert.equal(
 	projectionCallCount,
-	8,
-	`expected eight generated callback projection call sites for two row reductions, on/off identity, two queue workers, and two HTTP routes; got ${projectionCallCount}`,
+	12,
+	`expected twelve generated callback projection call sites for the existing multi-layer callbacks, the full-stack persisted-row reduction, and the full-stack worker on/off/add callbacks; got ${projectionCallCount}`,
 );
 
 await import(`${hostLoader}?multi-layer-host`);

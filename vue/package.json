@@ -11,7 +11,10 @@
 		"check:frontend-authoring": "virune check frontend-authoring",
 		"build:frontend-authoring": "virune build frontend-authoring",
 		"golden:frontend-authoring": "node scripts/verify-frontend-authoring.mjs",
-		"golden:dev-workflow": "node scripts/verify-dev-workflow.mjs"
+		"golden:dev-workflow": "node scripts/verify-dev-workflow.mjs",
+		"check:full-stack": "virune check full-stack",
+		"build:full-stack": "virune build full-stack",
+		"golden:full-stack": "node scripts/verify-full-stack.mjs"
 	},
 	"dependencies": {
 		"jsdom": "30.0.1",

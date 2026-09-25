@@ -10,9 +10,11 @@
     "check": "virune check",
     "build": "virune build",
     "start": "virune run",
+    "start:full-stack": "node scripts/start-full-stack.mjs",
     "golden": "node scripts/verify-multi-layer.mjs"
   },
   "dependencies": {
+    "@hono/node-server": "2.1.1",
     "better-sqlite3": "13.0.3",
     "drizzle-orm": "0.45.2",
     "hono": "4.13.5",

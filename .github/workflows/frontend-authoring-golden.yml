@@ -276,3 +276,74 @@ jobs:
       - name: Run Vue JSX development watch and HMR browser consumer
         working-directory: vue
         run: npm run golden:dev-workflow
+
+  full-stack-consumer:
+    name: Vue Component/View + Hono / SQLite / Queue / Chromium
+    needs: candidate-producer
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact Golden head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify producer identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ needs.candidate-producer.outputs.virune_sha }}" = "$VIRUNE_CANDIDATE_SHA"
+          test "$(git rev-parse HEAD)" = "${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
+      - name: Download exact Virune release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-authoring-virune-candidate
+          path: .candidate/virune-release
+      - name: Verify downloaded release checksums
+        working-directory: .candidate/virune-release
+        run: sha256sum --check SHA256SUMS
+      - name: Verify six-package candidate identity
+        run: node scripts/verify-candidate.mjs .candidate/virune-release
+      - name: Install pinned multi-layer dependencies
+        working-directory: multi-layer
+        run: npm ci
+      - name: Install exact Virune six-package multi-layer consumer surface
+        working-directory: multi-layer
+        run: node ../scripts/install-candidate.mjs ../.candidate/virune-release
+      - name: Install pinned Vue dependencies
+        working-directory: vue
+        run: npm ci
+      - name: Install exact Virune six-package Vue consumer surface
+        working-directory: vue
+        run: node ../scripts/install-candidate.mjs ../.candidate/virune-release
+      - name: Install Chromium for the full-stack browser consumer
+        working-directory: vue
+        run: npx playwright install --with-deps chromium
+      - name: Assert consumer-only workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e virune-source
+          test ! -e ../virune-source
+          ! git grep -nE '(packages/.*/src|\.\./virune|workspace:)' -- multi-layer vue scripts
+      - name: Check the multi-layer Virune application
+        working-directory: multi-layer
+        run: npm run check
+      - name: Build the multi-layer Virune application
+        working-directory: multi-layer
+        run: npm run build
+      - name: Run the existing multi-layer Golden assertions
+        working-directory: multi-layer
+        run: npm run golden
+      - name: Check the Vue full-stack component/view consumer
+        working-directory: vue
+        run: npm run check:full-stack
+      - name: Build the Vue full-stack component/view consumer
+        working-directory: vue
+        run: npm run build:full-stack
+      - name: Run the full-stack HTTP and Chromium consumer scenario
+        working-directory: vue
+        run: npm run golden:full-stack
