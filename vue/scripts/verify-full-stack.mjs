@@ -78,7 +78,7 @@ let browser;
 const previousWorkingDirectory = cwd();
 try {
 	chdir(temporaryDirectory);
-	server = await startFullStackServer({ databasePath: join(temporaryDirectory, 'multi-layer-full-stack.sqlite') });
+	server = await startFullStackServer();
 	browser = await chromium.launch({ headless: true });
 	const page = await browser.newPage();
 	const pageErrors = [];

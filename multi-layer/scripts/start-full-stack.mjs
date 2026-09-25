@@ -39,8 +39,8 @@ function escapeHtmlAttribute(value) {
 export async function startFullStackServer({
 	port = 0,
 	hostname = '127.0.0.1',
-	databasePath = resolve(process.cwd(), 'multi-layer-full-stack.sqlite'),
 } = {}) {
+	const databasePath = resolve(process.cwd(), 'multi-layer-full-stack.sqlite');
 	const sqlite = new Database(databasePath);
 	sqlite.exec('DROP TABLE IF EXISTS jobs; CREATE TABLE jobs (id TEXT PRIMARY KEY, status TEXT NOT NULL, detail TEXT NOT NULL)');
 	const db = drizzle({ client: sqlite });
