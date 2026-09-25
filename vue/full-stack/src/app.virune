@@ -1,0 +1,17 @@
+internal component App(initialStatus: String) uses JavaScript {
+	return view {
+		main("class": "job-page", "data-framework": "vue") {
+			h1() {
+				"Media job"
+			}
+			p(id: "job-status", "data-status": initialStatus) {
+				{ initialStatus }
+			}
+			form(method: "post", action: "/jobs/job-42") {
+				button(id: "publish-job", "type": "submit") {
+					"Publish job"
+				}
+			}
+		}
+	}
+}

@@ -55,3 +55,12 @@ pub fn describeDomainError(error: DomainError) -> String {
 		InvalidStatus(value) => "invalid-status:{value}"
 	}
 }
+
+@jsExport
+pub fn summaryFromStorage(id: String, status: String, detail: String) -> String uses JavaScript {
+	let outcome = fromStorage(id, status, detail)
+	return match outcome {
+		Ok(job) => describeJob(job)
+		Err(error) => describeDomainError(error)
+	}
+}

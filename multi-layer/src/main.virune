@@ -6,10 +6,17 @@ import js { Hono } from "hono"
 import js * as jsdom from "jsdom"
 import js PQueue from "p-queue"
 import js { h, render } from "preact"
-import { describeDomainError, describeJob, fromStorage, missingSummary } from "./domain.virune"
+import { describeDomainError, describeJob, fromStorage, missingSummary, summaryFromStorage } from "./domain.virune"
 
 fn lifecycleHandler() -> Unit uses JavaScript {
 	let lifecycleSqlite = Database("multi-layer-golden.sqlite")
+	discard lifecycleSqlite.exec("UPDATE jobs SET status = 'processing' WHERE id = 'job-42'")
+	discard lifecycleSqlite.close()
+	return Unit
+}
+
+fn fullStackLifecycleHandler() -> Unit uses JavaScript {
+	let lifecycleSqlite = Database("multi-layer-full-stack.sqlite")
 	discard lifecycleSqlite.exec("UPDATE jobs SET status = 'processing' WHERE id = 'job-42'")
 	discard lifecycleSqlite.close()
 	return Unit
@@ -107,4 +114,35 @@ pub async fn main() -> Unit uses JavaScript, Console {
 	let result = await runMultiLayer()
 	Console.print("golden:multi-layer:{result}")
 	return Unit
+}
+
+@jsExport
+pub async fn processStoredJob(databasePath: String, id: String) -> String uses JavaScript {
+	let sqlite = Database(databasePath)
+	let jobs = sqliteTable("jobs", {
+		id: text("id").primaryKey(),
+		status: text("status").notNull(),
+		detail: text("detail").notNull(),
+	})
+	let db = drizzle({ client: sqlite })
+	let queue = PQueue({ concurrency: 1 })
+	discard queue.on("active", fullStackLifecycleHandler)
+	let result = await queue.add(fn() -> Unit uses JavaScript {
+		discard db.update(jobs).set({
+			status: "completed",
+			detail: "published",
+		}).where(eq(jobs.id, id)).run()
+		return Unit
+	})
+	discard result
+	discard queue.off("active", fullStackLifecycleHandler)
+
+	let completedRow = db.select({
+		id: jobs.id,
+		status: jobs.status,
+		detail: jobs.detail,
+	}).from(jobs).where(eq(jobs.id, id)).all().reduce(fn(left, right) => left)
+	let summary = summaryFromStorage(completedRow.id, completedRow.status, completedRow.detail)
+	discard sqlite.close()
+	return summary
 }
