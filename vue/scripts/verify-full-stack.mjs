@@ -56,7 +56,7 @@ const browserBuild = await build({
 	format: 'esm',
 	platform: 'browser',
 	target: 'es2022',
-	sourcemap: 'external',
+	sourcemap: 'linked',
 	minify: true,
 	metafile: true,
 	logLevel: 'silent',
@@ -64,9 +64,13 @@ const browserBuild = await build({
 const bundle = await readFile(resolve(browserOutput, 'main.js'), 'utf8');
 const bundleMap = JSON.parse(await readFile(resolve(browserOutput, 'main.js.map'), 'utf8'));
 const outputs = Object.values(browserBuild.metafile.outputs);
+const finalMap = await readFile(resolve(browserOutput, 'main.js.map'), 'utf8');
 assert.ok(bundle.length > 0);
 assert.ok((await readFile(resolve(browserOutput, 'main.css'), 'utf8')).length > 0);
 assert.ok(bundleMap.sources.some(item => item.endsWith('src/app.virune')));
+assert.ok(JSON.parse(finalMap).sources.some(item => item.endsWith('src/app.virune')));
+assert.ok(bundle.includes('sourceMappingURL=main.js.map'));
+assert.equal(typeof startFullStackServer, 'function');
 assert.ok(outputs.some(output => output.entryPoint?.endsWith('/browser/main.js')));
 assert.equal(outputs.some(output => output.imports.some(item => item.external)), false);
 
@@ -137,7 +141,3 @@ try {
 	await rm(databasePath, { force: true });
 }
 
-const finalMap = await readFile(resolve(browserOutput, 'main.js.map'), 'utf8');
-assert.ok(JSON.parse(finalMap).sources.some(item => item.endsWith('src/app.virune')));
-assert.ok(bundle.includes('sourceMappingURL=main.js.map'));
-assert.equal(typeof startFullStackServer, 'function');
