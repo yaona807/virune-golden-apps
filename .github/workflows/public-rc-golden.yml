@@ -79,14 +79,6 @@ jobs:
             directory: vue
             commands: "check:frontend-authoring build:frontend-authoring golden:frontend-authoring golden:dev-workflow"
             browser: true
-          - name: full-stack-multi-layer
-            directory: multi-layer
-            commands: "check build golden"
-            browser: false
-          - name: full-stack-vue
-            directory: vue
-            commands: "check:full-stack build:full-stack golden:full-stack"
-            browser: true
           - name: date-fns
             directory: ecosystem/date-fns
             commands: "check build golden"
@@ -134,7 +126,7 @@ jobs:
           for path in package.json virune.json src; do
             if [[ -e "$path" ]]; then
               set +e
-              git grep -nE '(packages/.*/src|\.\./virune|workspace:)' -- "$path"
+              git grep -nE '(packages/.*/src|\\.\\./virune|workspace:)' -- "$path"
               status=$?
               set -e
               if [[ "$status" -eq 0 ]]; then
@@ -152,3 +144,93 @@ jobs:
           for command in ${{ matrix.scenario.commands }}; do
             npm run "$command"
           done
+
+  full-stack-public-rc-consumer:
+    name: full-stack / Ubuntu 24.04 / Node 24
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out Golden Applications only
+        uses: actions/checkout@v4
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Record exact public consumer identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Scenario: full-stack multi-layer + Vue"
+          echo "Virune source: public npm registry"
+          echo "Virune version: $VIRUNE_PUBLIC_VERSION"
+          echo "Golden commit: $(git rev-parse HEAD)"
+      - name: Clear npm cache before multi-layer install
+        run: npm cache clean --force
+      - name: Install pinned multi-layer dependencies
+        working-directory: multi-layer
+        run: npm ci
+      - name: Install exact public Virune packages in multi-layer
+        working-directory: multi-layer
+        run: node "$GITHUB_WORKSPACE/scripts/install-public-rc.mjs" "$PWD"
+      - name: Run multi-layer Golden commands
+        working-directory: multi-layer
+        run: |
+          npm run check
+          npm run build
+          npm run golden
+      - name: Clear npm cache before Vue install
+        run: npm cache clean --force
+      - name: Install pinned Vue dependencies
+        working-directory: vue
+        run: npm ci
+      - name: Install exact public Virune packages in Vue
+        working-directory: vue
+        run: node "$GITHUB_WORKSPACE/scripts/install-public-rc.mjs" "$PWD"
+      - name: Install Chromium for Vue full-stack
+        working-directory: vue
+        run: npx playwright install --with-deps chromium
+      - name: Assert source-free multi-layer consumer workspace
+        working-directory: multi-layer
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e "$GITHUB_WORKSPACE/virune-source"
+          test ! -e "$GITHUB_WORKSPACE/.candidate/virune-release"
+          for path in package.json virune.json src; do
+            if [[ -e "$path" ]]; then
+              set +e
+              git grep -nE '(packages/.*/src|\\.\\./virune|workspace:)' -- "$path"
+              status=$?
+              set -e
+              if [[ "$status" -eq 0 ]]; then
+                echo "Private Virune source or workspace dependency found in $path"
+                exit 1
+              fi
+              test "$status" -eq 1
+            fi
+          done
+      - name: Assert source-free Vue consumer workspace
+        working-directory: vue
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e "$GITHUB_WORKSPACE/virune-source"
+          test ! -e "$GITHUB_WORKSPACE/.candidate/virune-release"
+          for path in package.json virune.json src; do
+            if [[ -e "$path" ]]; then
+              set +e
+              git grep -nE '(packages/.*/src|\\.\\./virune|workspace:)' -- "$path"
+              status=$?
+              set -e
+              if [[ "$status" -eq 0 ]]; then
+                echo "Private Virune source or workspace dependency found in $path"
+                exit 1
+              fi
+              test "$status" -eq 1
+            fi
+          done
+      - name: Run Vue full-stack Golden commands
+        working-directory: vue
+        run: |
+          npm run check:full-stack
+          npm run build:full-stack
+          npm run golden:full-stack
