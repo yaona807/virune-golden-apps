@@ -7,12 +7,12 @@ import { createServer } from 'vite';
 
 const projectRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const sourceDirectory = resolve(projectRoot, 'frontend-authoring/src');
-const compilerEntry = resolve(projectRoot, 'node_modules/virune/dist/src/entry.js');
+const compilerExecutable = resolve(projectRoot, 'node_modules/.bin/virune');
 const viteConfig = resolve(projectRoot, 'frontend-authoring/vite.config.js');
 
 function compile() {
 	return new Promise(resolvePromise => {
-		const child = spawn(process.execPath, [compilerEntry, 'build', 'frontend-authoring'], {
+		const child = spawn(compilerExecutable, ['build', 'frontend-authoring'], {
 			cwd: projectRoot,
 			stdio: 'inherit',
 		});
