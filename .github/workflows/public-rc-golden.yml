@@ -1,0 +1,154 @@
+name: Phase 2B Public RC Golden
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  VIRUNE_PUBLIC_VERSION: 1.1.0-rc.4
+
+jobs:
+  public-rc-consumer:
+    name: ${{ matrix.scenario.name }} / Ubuntu 24.04 / Node 24
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario:
+          - name: p-queue
+            directory: .
+            commands: "check build golden"
+            browser: false
+          - name: hono
+            directory: hono
+            commands: "check build golden"
+            browser: false
+          - name: drizzle
+            directory: drizzle
+            commands: "check build golden"
+            browser: false
+          - name: preact
+            directory: preact
+            commands: "check build golden"
+            browser: false
+          - name: shared-domain
+            directory: shared-domain
+            commands: "check build golden"
+            browser: false
+          - name: declaration-shapes
+            directory: declaration-shapes
+            commands: "check build golden"
+            browser: false
+          - name: multi-layer
+            directory: multi-layer
+            commands: "check build golden"
+            browser: false
+          - name: scale-determinism
+            directory: scale-determinism
+            commands: "golden"
+            browser: false
+          - name: cross-interactions
+            directory: cross-interactions
+            commands: "check build golden"
+            browser: false
+          - name: runtime-resolution
+            directory: runtime-resolution
+            commands: "check build golden"
+            browser: false
+          - name: frontend-preact
+            directory: preact
+            commands: "check:frontend-authoring build:frontend-authoring golden:frontend-authoring"
+            browser: false
+          - name: frontend-react
+            directory: react
+            commands: "check:frontend-authoring build:frontend-authoring golden:frontend-authoring"
+            browser: false
+          - name: frontend-solid
+            directory: solid
+            commands: "check:frontend-authoring build:frontend-authoring golden:frontend-authoring"
+            browser: false
+          - name: frontend-vue
+            directory: vue
+            commands: "check:frontend-authoring build:frontend-authoring golden:frontend-authoring golden:dev-workflow"
+            browser: true
+          - name: full-stack-multi-layer
+            directory: multi-layer
+            commands: "check build golden"
+            browser: false
+          - name: full-stack-vue
+            directory: vue
+            commands: "check:full-stack build:full-stack golden:full-stack"
+            browser: true
+          - name: date-fns
+            directory: ecosystem/date-fns
+            commands: "check build golden"
+            browser: false
+          - name: axios
+            directory: ecosystem/axios
+            commands: "check build golden"
+            browser: false
+
+    steps:
+      - name: Check out Golden Applications only
+        uses: actions/checkout@v4
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Record exact public consumer identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Scenario: ${{ matrix.scenario.name }}"
+          echo "Directory: ${{ matrix.scenario.directory }}"
+          echo "Virune source: public npm registry"
+          echo "Virune version: $VIRUNE_PUBLIC_VERSION"
+          echo "Golden commit: $(git rev-parse HEAD)"
+      - name: Clear npm cache
+        run: npm cache clean --force
+      - name: Install pinned Golden dependencies
+        working-directory: ${{ matrix.scenario.directory }}
+        run: npm ci
+      - name: Install and verify exact public Virune package set
+        working-directory: ${{ matrix.scenario.directory }}
+        run: node "$GITHUB_WORKSPACE/scripts/install-public-rc.mjs" "$PWD"
+      - name: Install Chromium for browser scenarios
+        if: ${{ matrix.scenario.browser }}
+        working-directory: ${{ matrix.scenario.directory }}
+        run: npx playwright install --with-deps chromium
+      - name: Assert source-free consumer workspace
+        working-directory: ${{ matrix.scenario.directory }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e "$GITHUB_WORKSPACE/virune-source"
+          test ! -e "$GITHUB_WORKSPACE/.candidate/virune-release"
+          for path in package.json virune.json src; do
+            if [[ -e "$path" ]]; then
+              set +e
+              git grep -nE '(packages/.*/src|\.\./virune|workspace:)' -- "$path"
+              status=$?
+              set -e
+              if [[ "$status" -eq 0 ]]; then
+                echo "Private Virune source or workspace dependency found in $path"
+                exit 1
+              fi
+              test "$status" -eq 1
+            fi
+          done
+      - name: Run Golden consumer commands
+        working-directory: ${{ matrix.scenario.directory }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for command in ${{ matrix.scenario.commands }}; do
+            npm run "$command"
+          done
