@@ -123,7 +123,7 @@ jobs:
           set -euo pipefail
           test ! -e "$GITHUB_WORKSPACE/virune-source"
           test ! -e "$GITHUB_WORKSPACE/.candidate/virune-release"
-          for path in package.json virune.json src; do
+          for path in package.json virune.json src scripts; do
             if [[ -e "$path" ]]; then
               set +e
               git grep -nE '(packages/.*/src|\\.\\./virune|workspace:)' -- "$path"
@@ -189,7 +189,7 @@ jobs:
           set -euo pipefail
           test ! -e "$GITHUB_WORKSPACE/virune-source"
           test ! -e "$GITHUB_WORKSPACE/.candidate/virune-release"
-          for path in package.json virune.json src; do
+          for path in package.json virune.json src scripts; do
             if [[ -e "$path" ]]; then
               set +e
               git grep -nE '(packages/.*/src|\\.\\./virune|workspace:)' -- "$path"
@@ -209,7 +209,7 @@ jobs:
           set -euo pipefail
           test ! -e "$GITHUB_WORKSPACE/virune-source"
           test ! -e "$GITHUB_WORKSPACE/.candidate/virune-release"
-          for path in package.json virune.json src; do
+          for path in package.json virune.json src scripts; do
             if [[ -e "$path" ]]; then
               set +e
               git grep -nE '(packages/.*/src|\\.\\./virune|workspace:)' -- "$path"
