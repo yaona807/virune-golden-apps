@@ -171,12 +171,6 @@ jobs:
       - name: Install exact public Virune packages in multi-layer
         working-directory: multi-layer
         run: node "$GITHUB_WORKSPACE/scripts/install-public-rc.mjs" "$PWD"
-      - name: Run multi-layer Golden commands
-        working-directory: multi-layer
-        run: |
-          npm run check
-          npm run build
-          npm run golden
       - name: Clear npm cache before Vue install
         run: npm cache clean --force
       - name: Install pinned Vue dependencies
@@ -228,6 +222,13 @@ jobs:
               test "$status" -eq 1
             fi
           done
+      - name: Run multi-layer Golden commands
+        working-directory: multi-layer
+        run: |
+          npm run check
+          npm run build
+          npm run golden
+
       - name: Run Vue full-stack Golden commands
         working-directory: vue
         run: |
